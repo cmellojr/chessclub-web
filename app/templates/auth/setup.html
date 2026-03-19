@@ -1,99 +1,97 @@
 {% extends "base.html" %}
 
-{% block title %}Configuração de Credenciais — Chess Club Portal{% endblock %}
+{% block title %}Credential Setup — Chess Club Portal{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-7">
-    <h2 class="fw-bold mb-4">Configuração de Credenciais</h2>
+    <h2 class="fw-bold mb-4">Credential Setup</h2>
 
     {% if server_auth_configured %}
     <div class="alert alert-success">
-      <strong>✓ Credenciais configuradas.</strong> O portal está autenticado no Chess.com
-      e todas as seções estão disponíveis.
+      <strong>&#10003; Credentials configured.</strong> The portal is authenticated with Chess.com
+      and all sections are available.
     </div>
     {% else %}
     <div class="alert alert-warning">
-      <strong>⚠ Credenciais não configuradas.</strong> Apenas dados públicos (visão geral
-      e lista de membros) estão disponíveis. Siga as instruções abaixo para habilitar
-      torneios, leaderboard, confrontos, frequência e recordes.
+      <strong>&#9888; Credentials not configured.</strong> Only public data (overview
+      and member list) are available. Follow the instructions below to enable
+      tournaments, leaderboard, matchups, attendance, and records.
     </div>
     {% endif %}
 
     <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">Como funciona a autenticação</div>
+      <div class="card-header fw-semibold">How authentication works</div>
       <div class="card-body">
         <p>
-          A API interna do Chess.com (usada para torneios e estatísticas avançadas)
-          requer <strong>cookies de sessão</strong> — não OAuth. Por isso, as
-          credenciais são configuradas uma vez no servidor via arquivo
-          <code>.env</code>.
+          The Chess.com internal API (used for tournaments and advanced statistics)
+          requires <strong>session cookies</strong> — not OAuth. Therefore, credentials
+          are configured once on the server via the <code>.env</code> file.
         </p>
         <p class="mb-0">
-          Todos os visitantes do portal compartilham essas credenciais — não é
-          necessário que cada usuário faça login individualmente.
+          All portal visitors share these credentials — individual user login
+          is not required.
         </p>
       </div>
     </div>
 
     <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">Passo a passo</div>
+      <div class="card-header fw-semibold">Step by step</div>
       <div class="card-body">
         <ol class="mb-0">
           <li class="mb-3">
-            <strong>Instale a extensão chessclub Cookie Helper</strong>
-            (Chrome/Edge) a partir do código-fonte da biblioteca:<br>
+            <strong>Install the chessclub Cookie Helper extension</strong>
+            (Chrome/Edge) from the library source code:<br>
             <code>chessclub/tools/chessclub-cookie-helper/</code><br>
             <small class="text-secondary">
-              Abra <code>chrome://extensions</code>, ative o "Modo do desenvolvedor"
-              e clique em "Carregar sem compactação".
+              Open <code>chrome://extensions</code>, enable "Developer mode",
+              and click "Load unpacked".
             </small>
           </li>
           <li class="mb-3">
-            <strong>Faça login no
+            <strong>Log in to
             <a href="https://www.chess.com" target="_blank" rel="noopener">Chess.com</a>
-            </strong> no mesmo navegador.
+            </strong> in the same browser.
           </li>
           <li class="mb-3">
-            <strong>Clique no ícone da extensão</strong> na barra de ferramentas
-            e copie os valores de <code>ACCESS_TOKEN</code> e
-            <code>PHPSESSID</code>.<br>
+            <strong>Click the extension icon</strong> in the toolbar
+            and copy the <code>ACCESS_TOKEN</code> and
+            <code>PHPSESSID</code> values.<br>
             <small class="text-secondary">
-              Alternativamente: abra as DevTools do Chrome (F12) →
-              Application → Cookies → <code>chess.com</code> e copie manualmente.
+              Alternatively: open Chrome DevTools (F12) &rarr;
+              Application &rarr; Cookies &rarr; <code>chess.com</code> and copy manually.
             </small>
           </li>
           <li class="mb-3">
-            <strong>Cole os valores no arquivo <code>.env</code></strong>
-            do servidor:
-            <pre class="bg-light p-3 rounded mt-2 mb-0"><code>CHESSCOM_SERVER_ACCESS_TOKEN=seu_access_token_aqui
-CHESSCOM_SERVER_PHPSESSID=seu_phpsessid_aqui</code></pre>
+            <strong>Paste the values into the server's <code>.env</code> file</strong>:
+            <pre class="bg-light p-3 rounded mt-2 mb-0"><code>CHESSCOM_SERVER_ACCESS_TOKEN=your_access_token_here
+CHESSCOM_SERVER_PHPSESSID=your_phpsessid_here</code></pre>
           </li>
           <li>
-            <strong>Reinicie o servidor</strong> (<code>python run.py</code>)
-            para carregar as novas credenciais.
+            <strong>Restart the server</strong> (<code>python run.py</code>)
+            to load the new credentials.
           </li>
         </ol>
       </div>
     </div>
 
     <div class="card shadow-sm">
-      <div class="card-header fw-semibold">Observações importantes</div>
+      <div class="card-header fw-semibold">Important notes</div>
       <div class="card-body">
         <ul class="mb-0">
           <li>
-            <code>ACCESS_TOKEN</code> expira em ~24 horas — será necessário
-            repetir o processo diariamente para dados autenticados.
+            <code>ACCESS_TOKEN</code> expires in ~24 hours — you will need to
+            repeat the process daily for authenticated data.
           </li>
           <li>
-            <code>PHPSESSID</code> tem validade maior (~2 semanas).
+            <code>PHPSESSID</code> has a longer validity (~2 weeks).
           </li>
           <li>
-            Use a conta de um membro do clube para obter os melhores resultados.
+            Use a club member's account for best results.
           </li>
           <li>
-            Os cookies ficam somente no arquivo <code>.env</code> do servidor —
-            nunca são expostos ao navegador do visitante.
+            Cookies are stored only in the server's <code>.env</code> file —
+            they are never exposed to the visitor's browser.
           </li>
         </ul>
       </div>

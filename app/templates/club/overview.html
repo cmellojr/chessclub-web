@@ -12,7 +12,7 @@
     <div class="card text-center shadow-sm h-100">
       <div class="card-body">
         <div class="fs-2 fw-bold">{{ club.members_count }}</div>
-        <div class="text-secondary small">Membros</div>
+        <div class="text-secondary small">Members</div>
       </div>
     </div>
   </div>
@@ -23,7 +23,7 @@
     <div class="card text-center shadow-sm h-100">
       <div class="card-body">
         <div class="fs-2 fw-bold">{{ club.matches_count }}</div>
-        <div class="text-secondary small">Partidas de equipe</div>
+        <div class="text-secondary small">Team matches</div>
       </div>
     </div>
   </div>
@@ -34,7 +34,7 @@
     <div class="card text-center shadow-sm h-100">
       <div class="card-body">
         <div class="fs-4 fw-bold">{{ club.country }}</div>
-        <div class="text-secondary small">País</div>
+        <div class="text-secondary small">Country</div>
       </div>
     </div>
   </div>
@@ -45,7 +45,7 @@
     <div class="card text-center shadow-sm h-100">
       <div class="card-body">
         <div class="fs-5 fw-bold">{{ club.created_at | ts_to_date }}</div>
-        <div class="text-secondary small">Fundado em</div>
+        <div class="text-secondary small">Founded</div>
       </div>
     </div>
   </div>
@@ -59,7 +59,7 @@
       <dd class="col-sm-9"><code>{{ club.id }}</code></dd>
 
       {% if club.location %}
-      <dt class="col-sm-3">Localização</dt>
+      <dt class="col-sm-3">Location</dt>
       <dd class="col-sm-9">{{ club.location }}</dd>
       {% endif %}
 

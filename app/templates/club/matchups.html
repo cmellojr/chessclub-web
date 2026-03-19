@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Confrontos — {{ club.name }}{% endblock %}
+{% block title %}Matchups — {{ club.name }}{% endblock %}
 
 {% block content %}
 {% set active = "matchups" %}
@@ -9,18 +9,18 @@
 <!-- Filter -->
 <form class="row g-2 mb-4" method="get">
   <div class="col-auto">
-    <label class="col-form-label">Últimos torneios:</label>
+    <label class="col-form-label">Last tournaments:</label>
   </div>
   <div class="col-auto">
     <input type="number" class="form-control form-control-sm" name="last_n"
            value="{{ last_n or 5 }}" min="1" max="100" style="width:80px">
   </div>
   <div class="col-auto">
-    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
-    <a href="{{ url_for('club.matchups', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Todos</a>
+    <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+    <a href="{{ url_for('club.matchups', slug=slug) }}" class="btn btn-outline-secondary btn-sm">All</a>
   </div>
   <div class="col-auto align-self-center">
-    <small class="text-secondary">(0 = todos os torneios)</small>
+    <small class="text-secondary">(0 = all tournaments)</small>
   </div>
 </form>
 
@@ -29,13 +29,13 @@
   <table class="table table-hover table-sm align-middle">
     <thead class="table-dark">
       <tr>
-        <th>Jogador A</th>
-        <th>Vitórias A</th>
-        <th>Empates</th>
-        <th>Vitórias B</th>
-        <th>Jogador B</th>
+        <th>Player A</th>
+        <th>Wins A</th>
+        <th>Draws</th>
+        <th>Wins B</th>
+        <th>Player B</th>
         <th>Total</th>
-        <th>Último jogo</th>
+        <th>Last played</th>
       </tr>
     </thead>
     <tbody>
@@ -60,6 +60,6 @@
   </table>
 </div>
 {% else %}
-<p class="text-secondary">Nenhum confronto encontrado.</p>
+<p class="text-secondary">No matchup data found.</p>
 {% endif %}
 {% endblock %}

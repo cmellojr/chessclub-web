@@ -33,8 +33,8 @@ def _require_auth():
     """
     if not chess_service.is_authenticated(session):
         flash(
-            "Esta seção requer credenciais do "
-            "Chess.com configuradas no servidor.",
+            "This section requires Chess.com "
+            "credentials configured on the server.",
             "warning",
         )
         return redirect(url_for("auth.setup"))
@@ -44,7 +44,7 @@ def _require_auth():
 def _handle_auth_error():
     """Redirect to setup after an auth error."""
     flash(
-        "Credenciais do Chess.com inválidas ou expiradas. Reconfigure o .env.",
+        "Chess.com credentials invalid or expired. Please reconfigure .env.",
         "danger",
     )
     return redirect(url_for("auth.setup"))
@@ -69,7 +69,7 @@ def search():
     """
     slug = request.args.get("slug", "").strip()
     if not slug:
-        flash("Digite o identificador (slug) do clube.", "warning")
+        flash("Enter the club identifier (slug).", "warning")
         return redirect(url_for("club.index"))
     return redirect(url_for("club.overview", slug=slug))
 

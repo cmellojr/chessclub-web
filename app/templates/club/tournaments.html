@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Torneios — {{ club.name }}{% endblock %}
+{% block title %}Tournaments — {{ club.name }}{% endblock %}
 
 {% block content %}
 {% set active = "tournaments" %}
 {% include "club/_nav.html" with context %}
 
 <div class="mb-3">
-  <h5>{{ tournaments | length }} torneio(s)</h5>
+  <h5>{{ tournaments | length }} tournament(s)</h5>
 </div>
 
 {% if tournaments %}
@@ -15,14 +15,14 @@
   <table class="table table-hover table-sm align-middle">
     <thead class="table-dark">
       <tr>
-        <th>Nome</th>
-        <th>Formato</th>
+        <th>Name</th>
+        <th>Format</th>
         <th>Status</th>
-        <th>Jogadores</th>
-        <th>Vencedor</th>
-        <th>Pontos</th>
-        <th>Início</th>
-        <th>Fim</th>
+        <th>Players</th>
+        <th>Winner</th>
+        <th>Score</th>
+        <th>Start</th>
+        <th>End</th>
       </tr>
     </thead>
     <tbody>
@@ -43,9 +43,9 @@
         </td>
         <td>
           {% if t.status == 'finished' %}
-            <span class="badge bg-success">Encerrado</span>
+            <span class="badge bg-success">Finished</span>
           {% elif t.status == 'in_progress' %}
-            <span class="badge bg-warning text-dark">Em andamento</span>
+            <span class="badge bg-warning text-dark">In progress</span>
           {% else %}
             <span class="badge bg-light text-dark">{{ t.status }}</span>
           {% endif %}
@@ -61,6 +61,6 @@
   </table>
 </div>
 {% else %}
-<p class="text-secondary">Nenhum torneio encontrado.</p>
+<p class="text-secondary">No tournaments found.</p>
 {% endif %}
 {% endblock %}

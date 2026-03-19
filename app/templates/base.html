@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,7 +12,7 @@
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="{{ url_for('club.index') }}">♟ Chess Club Portal</a>
+      <a class="navbar-brand fw-bold" href="{{ url_for('club.index') }}">&#9823; Chess Club Portal</a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
         <span class="navbar-toggler-icon"></span>
@@ -22,23 +22,23 @@
         <!-- Quick search -->
         <form class="d-flex ms-auto me-3" action="{{ url_for('club.search') }}" method="get">
           <input class="form-control form-control-sm me-2" type="search" name="slug"
-                 placeholder="Slug do clube…" aria-label="Buscar clube">
-          <button class="btn btn-outline-light btn-sm" type="submit">Buscar</button>
+                 placeholder="Club slug..." aria-label="Search club">
+          <button class="btn btn-outline-light btn-sm" type="submit">Search</button>
         </form>
 
         <!-- Auth status -->
         <div class="navbar-nav align-items-center gap-2">
           {% if server_auth_configured %}
-            <span class="navbar-text text-success small">✓ Servidor autenticado</span>
+            <span class="navbar-text text-success small">&#10003; Server authenticated</span>
           {% else %}
             <a class="nav-link text-warning small" href="{{ url_for('auth.setup') }}"
-               title="Credenciais de servidor não configuradas">⚠ Dados públicos</a>
+               title="Server credentials not configured">&#9888; Public data only</a>
           {% endif %}
 
           {% if oauth_configured %}
             {% if session.chess_username %}
               <span class="navbar-text text-info small">{{ session.chess_username }}</span>
-              <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Sair</a>
+              <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
             {% else %}
               <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.login') }}">Login Chess.com</a>
             {% endif %}
@@ -70,7 +70,7 @@
   <!-- Footer -->
   <footer class="bg-dark text-secondary text-center py-3 mt-auto">
     <small>
-      Chess Club Portal &mdash; dados via
+      Chess Club Portal &mdash; data via
       <a href="https://www.chess.com" class="text-secondary" target="_blank" rel="noopener">Chess.com</a>
       &amp;
       <a href="https://lichess.org" class="text-secondary" target="_blank" rel="noopener">Lichess</a>

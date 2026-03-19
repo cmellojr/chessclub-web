@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Recordes — {{ club.name }}{% endblock %}
+{% block title %}Records — {{ club.name }}{% endblock %}
 
 {% block content %}
 {% set active = "records" %}
@@ -9,17 +9,17 @@
 <!-- Filter -->
 <form class="row g-2 mb-4" method="get">
   <div class="col-auto">
-    <label class="col-form-label">Torneios para recordes de partidas:</label>
+    <label class="col-form-label">Tournaments for game records:</label>
   </div>
   <div class="col-auto">
     <input type="number" class="form-control form-control-sm" name="last_n"
            value="{{ last_n }}" min="0" max="100" style="width:80px">
   </div>
   <div class="col-auto">
-    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
+    <button type="submit" class="btn btn-dark btn-sm">Filter</button>
   </div>
   <div class="col-auto align-self-center">
-    <small class="text-secondary">(0 = todos)</small>
+    <small class="text-secondary">(0 = all)</small>
   </div>
 </form>
 
@@ -33,7 +33,7 @@
         <div class="fs-4 fw-bold text-dark mb-1">{{ rec.value }}</div>
         {% if rec.player %}
           <p class="mb-1">
-            Jogador:
+            Player:
             <a href="https://www.chess.com/member/{{ rec.player }}"
                target="_blank" rel="noopener">{{ rec.player }}</a>
           </p>
@@ -50,6 +50,6 @@
   {% endfor %}
 </div>
 {% else %}
-<p class="text-secondary">Nenhum recorde encontrado.</p>
+<p class="text-secondary">No records found.</p>
 {% endif %}
 {% endblock %}

@@ -10,12 +10,12 @@
          target="_blank" rel="noopener">{{ username }}</a>
     </h2>
     <p class="text-secondary mb-0">
-      Histórico de rating — clube <code>{{ slug }}</code>
-      {% if last_n %} (últimos {{ last_n }} torneios){% endif %}
+      Rating history — club <code>{{ slug }}</code>
+      {% if last_n %} (last {{ last_n }} tournaments){% endif %}
     </p>
   </div>
   <a href="{{ url_for('club.tournaments', slug=slug) }}" class="btn btn-outline-secondary btn-sm">
-    ← Torneios do clube
+    &larr; Club tournaments
   </a>
 </div>
 
@@ -24,12 +24,12 @@
   <table class="table table-hover table-sm align-middle">
     <thead class="table-dark">
       <tr>
-        <th>Data</th>
-        <th>Torneio</th>
-        <th>Formato</th>
+        <th>Date</th>
+        <th>Tournament</th>
+        <th>Format</th>
         <th>Rating</th>
-        <th>Posição</th>
-        <th>Pontos</th>
+        <th>Position</th>
+        <th>Score</th>
       </tr>
     </thead>
     <tbody>
@@ -55,15 +55,15 @@
 
 {% if snapshots | length > 1 %}
 <p class="text-secondary small mt-2">
-  Rating inicial: <strong>{{ snapshots[0].rating or '—' }}</strong> →
-  Rating final: <strong>{{ snapshots[-1].rating or '—' }}</strong>
+  Starting rating: <strong>{{ snapshots[0].rating or '—' }}</strong> &rarr;
+  Final rating: <strong>{{ snapshots[-1].rating or '—' }}</strong>
 </p>
 {% endif %}
 
 {% else %}
 <div class="alert alert-info">
-  Nenhum dado de rating encontrado para <strong>{{ username }}</strong>
-  no clube <code>{{ slug }}</code>.
+  No rating data found for <strong>{{ username }}</strong>
+  in club <code>{{ slug }}</code>.
 </div>
 {% endif %}
 {% endblock %}

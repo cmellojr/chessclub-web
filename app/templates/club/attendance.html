@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Frequência — {{ club.name }}{% endblock %}
+{% block title %}Attendance — {{ club.name }}{% endblock %}
 
 {% block content %}
 {% set active = "attendance" %}
@@ -9,15 +9,15 @@
 <!-- Filter -->
 <form class="row g-2 mb-4" method="get">
   <div class="col-auto">
-    <label class="col-form-label">Últimos torneios:</label>
+    <label class="col-form-label">Last tournaments:</label>
   </div>
   <div class="col-auto">
     <input type="number" class="form-control form-control-sm" name="last_n"
-           value="{{ last_n or '' }}" min="1" max="200" placeholder="Todos" style="width:90px">
+           value="{{ last_n or '' }}" min="1" max="200" placeholder="All" style="width:90px">
   </div>
   <div class="col-auto">
-    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
-    <a href="{{ url_for('club.attendance', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Todos</a>
+    <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+    <a href="{{ url_for('club.attendance', slug=slug) }}" class="btn btn-outline-secondary btn-sm">All</a>
   </div>
 </form>
 
@@ -27,12 +27,12 @@
     <thead class="table-dark">
       <tr>
         <th>#</th>
-        <th>Jogador</th>
-        <th>Jogados</th>
+        <th>Player</th>
+        <th>Played</th>
         <th>Total</th>
-        <th>Frequência</th>
-        <th>Sequência atual</th>
-        <th>Maior sequência</th>
+        <th>Attendance</th>
+        <th>Current streak</th>
+        <th>Best streak</th>
       </tr>
     </thead>
     <tbody>
@@ -61,6 +61,6 @@
   </table>
 </div>
 {% else %}
-<p class="text-secondary">Nenhum dado de frequência encontrado.</p>
+<p class="text-secondary">No attendance data found.</p>
 {% endif %}
 {% endblock %}

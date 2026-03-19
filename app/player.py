@@ -32,8 +32,8 @@ def rating_history(username: str):
     """
     if not chess_service.is_authenticated(session):
         flash(
-            "Esta página requer credenciais do "
-            "Chess.com configuradas no servidor.",
+            "This page requires Chess.com "
+            "credentials configured on the server.",
             "warning",
         )
         return redirect(url_for("auth.setup"))
@@ -42,7 +42,7 @@ def rating_history(username: str):
     last_n = request.args.get("last_n", default=None, type=int)
 
     if not slug:
-        flash("Forneça o slug do clube via parâmetro ?club=.", "warning")
+        flash("Provide the club slug via ?club= parameter.", "warning")
         return redirect(url_for("club.index"))
 
     try:
@@ -52,7 +52,8 @@ def rating_history(username: str):
         )
     except AuthenticationRequiredError:
         flash(
-            "Credenciais expiradas ou inválidas. Reconfigure o .env.", "danger"
+            "Credentials expired or invalid. Please reconfigure .env.",
+            "danger",
         )
         return redirect(url_for("auth.setup"))
     except ChessclubError as exc:

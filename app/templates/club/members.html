@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Membros — {{ club.name }}{% endblock %}
+{% block title %}Members — {{ club.name }}{% endblock %}
 
 {% block content %}
 {% set active = "members" %}
 {% include "club/_nav.html" with context %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">{{ members | length }} membros</h5>
+  <h5 class="mb-0">{{ members | length }} members</h5>
 </div>
 
 {% if members %}
@@ -16,11 +16,11 @@
     <thead class="table-dark">
       <tr>
         <th>#</th>
-        <th>Usuário</th>
-        <th>Título</th>
+        <th>Username</th>
+        <th>Title</th>
         <th>Rating</th>
-        <th>Atividade</th>
-        <th>Entrou em</th>
+        <th>Activity</th>
+        <th>Joined</th>
       </tr>
     </thead>
     <tbody>
@@ -39,9 +39,9 @@
         <td>{{ m.rating if m.rating is not none else '—' }}</td>
         <td>
           {% if m.activity == 'weekly' %}
-            <span class="badge bg-success">Semanal</span>
+            <span class="badge bg-success">Weekly</span>
           {% elif m.activity == 'monthly' %}
-            <span class="badge bg-primary">Mensal</span>
+            <span class="badge bg-primary">Monthly</span>
           {% elif m.activity == 'all_time' %}
             <span class="badge bg-secondary">Irregular</span>
           {% else %}—{% endif %}
@@ -53,6 +53,6 @@
   </table>
 </div>
 {% else %}
-<p class="text-secondary">Nenhum membro encontrado.</p>
+<p class="text-secondary">No members found.</p>
 {% endif %}
 {% endblock %}

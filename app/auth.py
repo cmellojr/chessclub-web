@@ -51,8 +51,7 @@ def login():
     client_id = current_app.config.get("CHESSCOM_OAUTH_CLIENT_ID", "")
     if not client_id:
         flash(
-            "Login via OAuth não configurado. "
-            "Defina CHESSCOM_OAUTH_CLIENT_ID no .env.",
+            "OAuth login not configured. Set CHESSCOM_OAUTH_CLIENT_ID in .env.",
             "warning",
         )
         return redirect(url_for("auth.setup"))
@@ -86,7 +85,7 @@ def callback():
     if error:
         desc = request.args.get("error_description", error)
         flash(
-            f"Erro na autenticação Chess.com: {desc}",
+            f"Chess.com authentication error: {desc}",
             "danger",
         )
         return redirect(url_for("club.index"))
@@ -96,7 +95,7 @@ def callback():
     next_url = session.pop("oauth_next", url_for("club.index"))
 
     if not code or not code_verifier:
-        flash("Fluxo OAuth inválido. Tente novamente.", "danger")
+        flash("Invalid OAuth flow. Please try again.", "danger")
         return redirect(url_for("club.index"))
 
     try:
@@ -114,7 +113,7 @@ def callback():
         resp.raise_for_status()
         token_data = resp.json()
     except requests.RequestException as exc:
-        flash(f"Erro ao trocar código por token: {exc}", "danger")
+        flash(f"Token exchange error: {exc}", "danger")
         return redirect(url_for("club.index"))
 
     session["oauth_token"] = {
@@ -126,7 +125,7 @@ def callback():
         token_data.get("username") or token_data.get("login") or ""
     )
 
-    flash("Conectado ao Chess.com com sucesso!", "success")
+    flash("Successfully connected to Chess.com!", "success")
     return redirect(next_url)
 
 
@@ -135,7 +134,7 @@ def logout():
     """Clear the user's OAuth credentials from the session."""
     session.pop("oauth_token", None)
     session.pop("chess_username", None)
-    flash("Desconectado do Chess.com.", "info")
+    flash("Disconnected from Chess.com.", "info")
     return redirect(url_for("club.index"))
 
 
