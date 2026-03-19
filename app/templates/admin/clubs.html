@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Watched Clubs{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h3>Watched Clubs</h3>
+  <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-dark btn-sm">Back to dashboard</a>
+</div>
+
+<!-- Add club form -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Add Club</h5>
+    <form method="post" action="{{ url_for('admin.add_club') }}" class="row g-2">
+      <div class="col-auto">
+        <input type="text" class="form-control form-control-sm" name="slug"
+               placeholder="club-slug" required>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-dark btn-sm">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Current clubs list -->
+{% if watched_clubs %}
+<div class="list-group">
+  {% for slug in watched_clubs %}
+  <div class="list-group-item d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('club.overview', slug=slug) }}">{{ slug }}</a>
+    <form method="post" action="{{ url_for('admin.remove_club') }}">
+      <input type="hidden" name="slug" value="{{ slug }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-secondary">No watched clubs. Add one above.</p>
+{% endif %}
+{% endblock %}

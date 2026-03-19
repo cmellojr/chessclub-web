@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h3>Admin Dashboard</h3>
+  <div>
+    <a href="{{ url_for('admin.clubs') }}" class="btn btn-outline-dark btn-sm">Manage clubs</a>
+    <form class="d-inline" method="post" action="{{ url_for('admin.trigger_sync') }}">
+      <button type="submit" class="btn btn-dark btn-sm">Sync now</button>
+    </form>
+    <a href="{{ url_for('admin.logout') }}" class="btn btn-outline-secondary btn-sm ms-2">Logout</a>
+  </div>
+</div>
+
+<!-- Sync overview -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Sync Status</h5>
+    {% if sync_status.last_run %}
+      <p class="mb-1">
+        Last run: <strong>{{ sync_status.last_run.strftime('%Y-%m-%d %H:%M:%S UTC') }}</strong>
+      </p>
+    {% else %}
+      <p class="text-secondary mb-1">No sync has run yet.</p>
+    {% endif %}
+    <p class="mb-0">Watched clubs: <strong>{{ watched_clubs | length }}</strong></p>
+  </div>
+</div>
+
+<!-- Per-club status -->
+{% if watched_clubs %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Club</th>
+        <th>Status</th>
+        <th>Last synced</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for slug in watched_clubs %}
+      {% set cs = sync_status.clubs.get(slug, {}) %}
+      <tr>
+        <td>
+          <a href="{{ url_for('club.overview', slug=slug) }}">{{ slug }}</a>
+        </td>
+        <td>
+          {% if cs %}
+            {% if cs.ok %}
+              <span class="badge bg-success">OK</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Partial</span>
+            {% endif %}
+          {% else %}
+            <span class="badge bg-secondary">Pending</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if cs and cs.synced_at %}
+            {{ cs.synced_at.strftime('%Y-%m-%d %H:%M UTC') }}
+          {% else %}
+            &mdash;
+          {% endif %}
+        </td>
+        <td>
+          {% if cs and cs.steps %}
+            {% for step, status in cs.steps.items() %}
+              <span class="badge {{ 'bg-success' if status == 'ok' else 'bg-danger' }} me-1"
+                    title="{{ status }}">{{ step }}</span>
+            {% endfor %}
+          {% else %}
+            &mdash;
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">
+  No watched clubs configured.
+  <a href="{{ url_for('admin.clubs') }}">Add one</a>.
+</p>
+{% endif %}
+{% endblock %}

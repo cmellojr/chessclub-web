@@ -35,6 +35,16 @@
                title="Server credentials not configured">&#9888; Public data only</a>
           {% endif %}
 
+          {% if sync_status and sync_status.last_run %}
+            <span class="navbar-text small ms-2" title="Last sync: {{ sync_status.last_run.strftime('%Y-%m-%d %H:%M UTC') }}">
+              &#128260; Synced
+            </span>
+          {% endif %}
+
+          {% if session.get('admin_authenticated') %}
+            <a class="nav-link small" href="{{ url_for('admin.dashboard') }}">Admin</a>
+          {% endif %}
+
           {% if oauth_configured %}
             {% if session.chess_username %}
               <span class="navbar-text text-info small">{{ session.chess_username }}</span>
