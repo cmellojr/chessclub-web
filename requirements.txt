@@ -1,0 +1,9 @@
+Flask>=3.0
+python-dotenv>=1.0
+requests>=2.31
+
+# chessclub library — use one of the options below:
+# Option A: install from GitHub (production)
+chessclub @ git+https://github.com/cmellojr/chessclub.git
+# Option B: install locally (development) — comment line above and run:
+#   pip install -e ../chessclub

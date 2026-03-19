@@ -1,0 +1,32 @@
+/* =====================================================
+   Chess Club Portal — minimal customizations
+   Base styling handled by Bootstrap 5
+   ===================================================== */
+
+/* Tighten up table cells for dense data */
+.table-sm td,
+.table-sm th {
+  padding: 0.3rem 0.5rem;
+}
+
+/* Clickable rows */
+.table-hover tbody tr {
+  cursor: default;
+}
+
+/* Nav tab active state emphasis */
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+}
+
+/* Progress bars in attendance table */
+.progress {
+  background-color: #e9ecef;
+}
+
+/* Responsive card grid minimum */
+@media (max-width: 576px) {
+  .display-5 {
+    font-size: 1.8rem;
+  }
+}

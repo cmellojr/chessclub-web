@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Chess Club Portal{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{{ url_for('club.index') }}">♟ Chess Club Portal</a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <!-- Quick search -->
+        <form class="d-flex ms-auto me-3" action="{{ url_for('club.search') }}" method="get">
+          <input class="form-control form-control-sm me-2" type="search" name="slug"
+                 placeholder="Slug do clube…" aria-label="Buscar clube">
+          <button class="btn btn-outline-light btn-sm" type="submit">Buscar</button>
+        </form>
+
+        <!-- Auth status -->
+        <div class="navbar-nav align-items-center gap-2">
+          {% if server_auth_configured %}
+            <span class="navbar-text text-success small">✓ Servidor autenticado</span>
+          {% else %}
+            <a class="nav-link text-warning small" href="{{ url_for('auth.setup') }}"
+               title="Credenciais de servidor não configuradas">⚠ Dados públicos</a>
+          {% endif %}
+
+          {% if oauth_configured %}
+            {% if session.chess_username %}
+              <span class="navbar-text text-info small">{{ session.chess_username }}</span>
+              <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Sair</a>
+            {% else %}
+              <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.login') }}">Login Chess.com</a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  <div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page content -->
+  <main class="container my-4 flex-grow-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-secondary text-center py-3 mt-auto">
+    <small>
+      Chess Club Portal &mdash; dados via
+      <a href="https://www.chess.com" class="text-secondary" target="_blank" rel="noopener">Chess.com</a>
+      &amp;
+      <a href="https://lichess.org" class="text-secondary" target="_blank" rel="noopener">Lichess</a>
+      &middot;
+      <a href="https://github.com/cmellojr/chessclub" class="text-secondary" target="_blank" rel="noopener">chessclub lib</a>
+    </small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

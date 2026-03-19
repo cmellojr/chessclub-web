@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Configuração de Credenciais — Chess Club Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-7">
+    <h2 class="fw-bold mb-4">Configuração de Credenciais</h2>
+
+    {% if server_auth_configured %}
+    <div class="alert alert-success">
+      <strong>✓ Credenciais configuradas.</strong> O portal está autenticado no Chess.com
+      e todas as seções estão disponíveis.
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <strong>⚠ Credenciais não configuradas.</strong> Apenas dados públicos (visão geral
+      e lista de membros) estão disponíveis. Siga as instruções abaixo para habilitar
+      torneios, leaderboard, confrontos, frequência e recordes.
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Como funciona a autenticação</div>
+      <div class="card-body">
+        <p>
+          A API interna do Chess.com (usada para torneios e estatísticas avançadas)
+          requer <strong>cookies de sessão</strong> — não OAuth. Por isso, as
+          credenciais são configuradas uma vez no servidor via arquivo
+          <code>.env</code>.
+        </p>
+        <p class="mb-0">
+          Todos os visitantes do portal compartilham essas credenciais — não é
+          necessário que cada usuário faça login individualmente.
+        </p>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Passo a passo</div>
+      <div class="card-body">
+        <ol class="mb-0">
+          <li class="mb-3">
+            <strong>Instale a extensão chessclub Cookie Helper</strong>
+            (Chrome/Edge) a partir do código-fonte da biblioteca:<br>
+            <code>chessclub/tools/chessclub-cookie-helper/</code><br>
+            <small class="text-secondary">
+              Abra <code>chrome://extensions</code>, ative o "Modo do desenvolvedor"
+              e clique em "Carregar sem compactação".
+            </small>
+          </li>
+          <li class="mb-3">
+            <strong>Faça login no
+            <a href="https://www.chess.com" target="_blank" rel="noopener">Chess.com</a>
+            </strong> no mesmo navegador.
+          </li>
+          <li class="mb-3">
+            <strong>Clique no ícone da extensão</strong> na barra de ferramentas
+            e copie os valores de <code>ACCESS_TOKEN</code> e
+            <code>PHPSESSID</code>.<br>
+            <small class="text-secondary">
+              Alternativamente: abra as DevTools do Chrome (F12) →
+              Application → Cookies → <code>chess.com</code> e copie manualmente.
+            </small>
+          </li>
+          <li class="mb-3">
+            <strong>Cole os valores no arquivo <code>.env</code></strong>
+            do servidor:
+            <pre class="bg-light p-3 rounded mt-2 mb-0"><code>CHESSCOM_SERVER_ACCESS_TOKEN=seu_access_token_aqui
+CHESSCOM_SERVER_PHPSESSID=seu_phpsessid_aqui</code></pre>
+          </li>
+          <li>
+            <strong>Reinicie o servidor</strong> (<code>python run.py</code>)
+            para carregar as novas credenciais.
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Observações importantes</div>
+      <div class="card-body">
+        <ul class="mb-0">
+          <li>
+            <code>ACCESS_TOKEN</code> expira em ~24 horas — será necessário
+            repetir o processo diariamente para dados autenticados.
+          </li>
+          <li>
+            <code>PHPSESSID</code> tem validade maior (~2 semanas).
+          </li>
+          <li>
+            Use a conta de um membro do clube para obter os melhores resultados.
+          </li>
+          <li>
+            Os cookies ficam somente no arquivo <code>.env</code> do servidor —
+            nunca são expostos ao navegador do visitante.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

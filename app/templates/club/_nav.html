@@ -1,0 +1,42 @@
+{#
+  Partial: club section navigation.
+  Variables expected: club (Club), slug (str), active (str), authenticated (bool)
+#}
+<div class="mb-4">
+  <h2 class="fw-bold">{{ club.name }}</h2>
+  {% if club.description %}
+    <p class="text-secondary">{{ club.description }}</p>
+  {% endif %}
+
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active == 'overview' }}"
+         href="{{ url_for('club.overview', slug=slug) }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active == 'members' }}"
+         href="{{ url_for('club.members', slug=slug) }}">Membros</a>
+    </li>
+
+    {# Authenticated sections: show locked icon if not authenticated #}
+    {% set auth_sections = [
+      ('tournaments', 'Torneios'),
+      ('leaderboard', 'Leaderboard'),
+      ('matchups', 'Confrontos'),
+      ('attendance', 'Frequência'),
+      ('records', 'Recordes'),
+    ] %}
+    {% for section, label in auth_sections %}
+      <li class="nav-item">
+        {% if authenticated %}
+          <a class="nav-link {{ 'active' if active == section }}"
+             href="{{ url_for('club.' + section, slug=slug) }}">{{ label }}</a>
+        {% else %}
+          <a class="nav-link text-secondary"
+             href="{{ url_for('auth.login', next=url_for('club.' + section, slug=slug)) }}"
+             title="Requer login no Chess.com">{{ label }} 🔒</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>

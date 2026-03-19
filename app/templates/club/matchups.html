@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Confrontos — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "matchups" %}
+{% include "club/_nav.html" with context %}
+
+<!-- Filter -->
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <label class="col-form-label">Últimos torneios:</label>
+  </div>
+  <div class="col-auto">
+    <input type="number" class="form-control form-control-sm" name="last_n"
+           value="{{ last_n or 5 }}" min="1" max="100" style="width:80px">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
+    <a href="{{ url_for('club.matchups', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Todos</a>
+  </div>
+  <div class="col-auto align-self-center">
+    <small class="text-secondary">(0 = todos os torneios)</small>
+  </div>
+</form>
+
+{% if matchups %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Jogador A</th>
+        <th>Vitórias A</th>
+        <th>Empates</th>
+        <th>Vitórias B</th>
+        <th>Jogador B</th>
+        <th>Total</th>
+        <th>Último jogo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in matchups %}
+      <tr>
+        <td>
+          <a href="https://www.chess.com/member/{{ m.player_a }}"
+             target="_blank" rel="noopener">{{ m.player_a }}</a>
+        </td>
+        <td class="fw-bold {{ 'text-success' if m.wins_a > m.wins_b }}">{{ m.wins_a }}</td>
+        <td class="text-secondary">{{ m.draws }}</td>
+        <td class="fw-bold {{ 'text-success' if m.wins_b > m.wins_a }}">{{ m.wins_b }}</td>
+        <td>
+          <a href="https://www.chess.com/member/{{ m.player_b }}"
+             target="_blank" rel="noopener">{{ m.player_b }}</a>
+        </td>
+        <td>{{ m.total_games }}</td>
+        <td>{{ m.last_played | ts_to_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">Nenhum confronto encontrado.</p>
+{% endif %}
+{% endblock %}

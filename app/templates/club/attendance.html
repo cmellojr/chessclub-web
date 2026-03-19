@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Frequência — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "attendance" %}
+{% include "club/_nav.html" with context %}
+
+<!-- Filter -->
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <label class="col-form-label">Últimos torneios:</label>
+  </div>
+  <div class="col-auto">
+    <input type="number" class="form-control form-control-sm" name="last_n"
+           value="{{ last_n or '' }}" min="1" max="200" placeholder="Todos" style="width:90px">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
+    <a href="{{ url_for('club.attendance', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Todos</a>
+  </div>
+</form>
+
+{% if records %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Jogador</th>
+        <th>Jogados</th>
+        <th>Total</th>
+        <th>Frequência</th>
+        <th>Sequência atual</th>
+        <th>Maior sequência</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td class="text-secondary">{{ loop.index }}</td>
+        <td>
+          <a href="https://www.chess.com/member/{{ r.username }}"
+             target="_blank" rel="noopener">{{ r.username }}</a>
+        </td>
+        <td>{{ r.tournaments_played }}</td>
+        <td>{{ r.total_tournaments }}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height:8px; min-width:60px;">
+              <div class="progress-bar bg-success" style="width:{{ r.participation_pct }}%"></div>
+            </div>
+            <span class="small">{{ r.participation_pct }}%</span>
+          </div>
+        </td>
+        <td>{{ r.current_streak }}</td>
+        <td>{{ r.max_streak }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">Nenhum dado de frequência encontrado.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "leaderboard" %}
+{% include "club/_nav.html" with context %}
+
+<!-- Period filters -->
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <label class="col-form-label">Ano:</label>
+  </div>
+  <div class="col-auto">
+    <input type="number" class="form-control form-control-sm" name="year"
+           value="{{ year or '' }}" placeholder="Todos" min="2000" max="2100">
+  </div>
+  <div class="col-auto">
+    <label class="col-form-label">Mês:</label>
+  </div>
+  <div class="col-auto">
+    <select class="form-select form-select-sm" name="month">
+      <option value="">Todos</option>
+      {% for m_num, m_name in [
+        (1,'Janeiro'),(2,'Fevereiro'),(3,'Março'),(4,'Abril'),
+        (5,'Maio'),(6,'Junho'),(7,'Julho'),(8,'Agosto'),
+        (9,'Setembro'),(10,'Outubro'),(11,'Novembro'),(12,'Dezembro')
+      ] %}
+        <option value="{{ m_num }}" {{ 'selected' if month == m_num }}>{{ m_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-dark btn-sm">Filtrar</button>
+    <a href="{{ url_for('club.leaderboard', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+  </div>
+</form>
+
+{% if year %}
+  <p class="text-secondary small">
+    Período: {{ year }}{% if month %}/{{ '%02d' | format(month) }}{% endif %}
+  </p>
+{% endif %}
+
+{% if stats %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Jogador</th>
+        <th>Torneios</th>
+        <th>Pontos totais</th>
+        <th>Média/torneio</th>
+        <th>Vitórias (1º)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in stats %}
+      <tr>
+        <td>
+          {% if loop.index == 1 %}🥇
+          {% elif loop.index == 2 %}🥈
+          {% elif loop.index == 3 %}🥉
+          {% else %}{{ loop.index }}{% endif %}
+        </td>
+        <td>
+          <a href="https://www.chess.com/member/{{ p.username }}"
+             target="_blank" rel="noopener">{{ p.username }}</a>
+        </td>
+        <td>{{ p.tournaments_played }}</td>
+        <td>{{ '%.1f' | format(p.total_score) }}</td>
+        <td>{{ '%.2f' | format(p.avg_score) }}</td>
+        <td>{{ p.wins }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">Nenhum dado disponível para o período selecionado.</p>
+{% endif %}
+{% endblock %}

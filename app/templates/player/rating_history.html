@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Rating: {{ username }} — Chess Club Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">
+      <a href="https://www.chess.com/member/{{ username }}"
+         target="_blank" rel="noopener">{{ username }}</a>
+    </h2>
+    <p class="text-secondary mb-0">
+      Histórico de rating — clube <code>{{ slug }}</code>
+      {% if last_n %} (últimos {{ last_n }} torneios){% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('club.tournaments', slug=slug) }}" class="btn btn-outline-secondary btn-sm">
+    ← Torneios do clube
+  </a>
+</div>
+
+{% if snapshots %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Data</th>
+        <th>Torneio</th>
+        <th>Formato</th>
+        <th>Rating</th>
+        <th>Posição</th>
+        <th>Pontos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in snapshots %}
+      <tr>
+        <td>{{ s.tournament_date | ts_to_date }}</td>
+        <td>{{ s.tournament_name }}</td>
+        <td>
+          {% if s.tournament_type == 'arena' %}
+            <span class="badge bg-info text-dark">Arena</span>
+          {% else %}
+            <span class="badge bg-secondary">Swiss</span>
+          {% endif %}
+        </td>
+        <td class="fw-bold">{{ s.rating if s.rating is not none else '—' }}</td>
+        <td>{{ s.position }}</td>
+        <td>{{ '%.1f' | format(s.score) if s.score is not none else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if snapshots | length > 1 %}
+<p class="text-secondary small mt-2">
+  Rating inicial: <strong>{{ snapshots[0].rating or '—' }}</strong> →
+  Rating final: <strong>{{ snapshots[-1].rating or '—' }}</strong>
+</p>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+  Nenhum dado de rating encontrado para <strong>{{ username }}</strong>
+  no clube <code>{{ slug }}</code>.
+</div>
+{% endif %}
+{% endblock %}

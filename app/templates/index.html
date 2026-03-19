@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Chess Club Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6 text-center py-5">
+    <h1 class="display-5 fw-bold mb-3">♟ Chess Club Portal</h1>
+    <p class="lead text-secondary mb-4">
+      Estatísticas e dados de clubes do Chess.com e Lichess.
+    </p>
+
+    <form action="{{ url_for('club.search') }}" method="get">
+      <div class="input-group input-group-lg shadow-sm">
+        <input
+          type="text"
+          class="form-control"
+          name="slug"
+          placeholder="Digite o slug do clube (ex: clube-de-xadrez-de-jundiai)"
+          autofocus
+          required
+        >
+        <button class="btn btn-dark" type="submit">Ver clube</button>
+      </div>
+      <div class="form-text mt-2">
+        O slug é o identificador do clube na URL do Chess.com ou Lichess.
+      </div>
+    </form>
+
+    {% if not server_auth_configured %}
+    <div class="alert alert-warning mt-4 text-start" role="alert">
+      <strong>Configuração necessária:</strong> Para acessar torneios, leaderboard,
+      confrontos e mais, configure as credenciais do Chess.com no arquivo
+      <code>.env</code> do servidor.
+      <a href="{{ url_for('auth.setup') }}" class="alert-link">Ver instruções →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
