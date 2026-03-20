@@ -8,7 +8,10 @@
   <div>
     <a href="{{ url_for('admin.clubs') }}" class="btn btn-outline-dark btn-sm">Manage clubs</a>
     <form class="d-inline" method="post" action="{{ url_for('admin.trigger_sync') }}">
-      <button type="submit" class="btn btn-dark btn-sm">Sync now</button>
+      <button type="submit" class="btn btn-dark btn-sm"
+              {{ 'disabled' if sync_status.running }}>
+        {% if sync_status.running %}Syncing...{% else %}Sync now{% endif %}
+      </button>
     </form>
     <a href="{{ url_for('admin.logout') }}" class="btn btn-outline-secondary btn-sm ms-2">Logout</a>
   </div>
@@ -18,7 +21,12 @@
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <h5 class="card-title">Sync Status</h5>
-    {% if sync_status.last_run %}
+    {% if sync_status.running %}
+      <p class="mb-1 text-info">
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Phase 1 sync in progress...
+      </p>
+    {% elif sync_status.last_run %}
       <p class="mb-1">
         Last run: <strong>{{ sync_status.last_run.strftime('%Y-%m-%d %H:%M:%S UTC') }}</strong>
       </p>
@@ -36,9 +44,9 @@
     <thead class="table-dark">
       <tr>
         <th>Club</th>
-        <th>Status</th>
+        <th>Phase 1</th>
         <th>Last synced</th>
-        <th>Details</th>
+        <th>Steps</th>
       </tr>
     </thead>
     <tbody>
@@ -49,12 +57,14 @@
           <a href="{{ url_for('club.overview', slug=slug) }}">{{ slug }}</a>
         </td>
         <td>
-          {% if cs %}
+          {% if cs and cs.synced_at %}
             {% if cs.ok %}
               <span class="badge bg-success">OK</span>
             {% else %}
               <span class="badge bg-warning text-dark">Partial</span>
             {% endif %}
+          {% elif cs and cs.steps %}
+            <span class="badge bg-info">Syncing...</span>
           {% else %}
             <span class="badge bg-secondary">Pending</span>
           {% endif %}
@@ -68,15 +78,72 @@
         </td>
         <td>
           {% if cs and cs.steps %}
-            {% for step, status in cs.steps.items() %}
-              <span class="badge {{ 'bg-success' if status == 'ok' else 'bg-danger' }} me-1"
-                    title="{{ status }}">{{ step }}</span>
+            {% for step, st in cs.steps.items() %}
+              <span class="badge {{ 'bg-success' if st == 'ok' else 'bg-danger' }} me-1"
+                    title="{{ st }}">{{ step }}</span>
             {% endfor %}
           {% else %}
             &mdash;
           {% endif %}
         </td>
       </tr>
+
+      <!-- Game sync row -->
+      {% set gs = cs.get('game_sync', {}) if cs else {} %}
+      <tr class="table-light">
+        <td class="ps-4 text-secondary small">Game archives</td>
+        <td colspan="2">
+          {% if gs and gs.get('running') %}
+            {% set pct = (gs.done / gs.total * 100) | int if gs.total else 0 %}
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height: 10px; min-width: 120px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                     style="width: {{ pct }}%"></div>
+              </div>
+              <span class="small text-nowrap">{{ gs.done }}/{{ gs.total }} ({{ pct }}%)</span>
+            </div>
+            {% if gs.get('current') %}
+              <small class="text-secondary">Processing: {{ gs.current }}</small>
+            {% endif %}
+          {% elif gs and gs.get('completed_at') %}
+            <span class="badge bg-success">Complete</span>
+            <small class="text-secondary ms-2">
+              {{ gs.completed_at.strftime('%Y-%m-%d %H:%M UTC') }}
+              &mdash; {{ gs.total }} tournaments
+            </small>
+          {% else %}
+            <span class="text-secondary small">Not synced yet</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if gs and gs.get('running') %}
+            <button class="btn btn-sm btn-outline-secondary" disabled>Running...</button>
+          {% else %}
+            <form class="d-inline" method="post"
+                  action="{{ url_for('admin.trigger_game_sync', slug=slug) }}">
+              <button type="submit" class="btn btn-sm btn-outline-dark">Sync games</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- Game sync errors -->
+      {% if gs and gs.get('errors') %}
+      <tr class="table-light">
+        <td></td>
+        <td colspan="3">
+          <details class="small">
+            <summary class="text-danger">{{ gs.errors | length }} error(s)</summary>
+            <ul class="mb-0 mt-1">
+              {% for err in gs.errors %}
+                <li class="text-danger">{{ err }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        </td>
+      </tr>
+      {% endif %}
+
       {% endfor %}
     </tbody>
   </table>

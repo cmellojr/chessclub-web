@@ -64,8 +64,13 @@ def create_app():
     app.register_blueprint(player_bp)
 
     # ---------- Background sync scheduler ----------
-    from app.sync import init_scheduler
+    # Skip scheduler in the Flask reloader child process to avoid
+    # running two schedulers simultaneously in debug mode.
+    import os
 
-    init_scheduler(app)
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from app.sync import init_scheduler
+
+        init_scheduler(app)
 
     return app

@@ -15,9 +15,10 @@ from flask import (
 
 from app.sync import (
     get_watched_clubs,
-    run_sync,
     save_watched_clubs,
     sync_status,
+    trigger_game_sync_async,
+    trigger_sync_async,
 )
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -148,7 +149,32 @@ def remove_club():
 @admin_bp.route("/sync", methods=["POST"])
 @_require_admin
 def trigger_sync():
-    """Trigger a manual sync run now."""
-    run_sync(current_app._get_current_object())
-    flash("Manual sync completed.", "success")
+    """Trigger a Phase 1 sync run in the background."""
+    started = trigger_sync_async(current_app._get_current_object())
+    if started:
+        flash("Sync started in background.", "info")
+    else:
+        flash("A sync is already running.", "warning")
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/sync-games/<slug>", methods=["POST"])
+@_require_admin
+def trigger_game_sync(slug: str):
+    """Trigger Phase 2 game archive sync for a specific club.
+
+    Args:
+        slug: The club slug to sync games for.
+    """
+    started = trigger_game_sync_async(current_app._get_current_object(), slug)
+    if started:
+        flash(
+            f"Game sync started for '{slug}'. Refresh to see progress.",
+            "info",
+        )
+    else:
+        flash(
+            f"Game sync for '{slug}' is already running.",
+            "warning",
+        )
     return redirect(url_for("admin.dashboard"))
