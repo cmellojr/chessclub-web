@@ -36,3 +36,8 @@ class Config:
         "WATCHED_CLUBS_FILE", "watched_clubs.json"
     )
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+    # Database
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URI", "sqlite:///chessclub.db"
+    )

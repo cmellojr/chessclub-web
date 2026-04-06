@@ -12,6 +12,15 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # ---------- Database ----------
+    from app.extensions import db
+
+    db.init_app(app)
+    with app.app_context():
+        from app import models  # noqa: F401
+
+        db.create_all()
+
     # ---------- Jinja2 filters ----------
     @app.template_filter("ts_to_date")
     def ts_to_date(ts):

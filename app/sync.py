@@ -1,15 +1,16 @@
 """Background sync worker for pre-warming the chessclub cache.
 
 Runs periodic jobs via APScheduler to fetch club data using server
-cookies, populating the chessclub library's built-in SQLite cache so
-that visitors always get fast, cached responses.
+cookies, populating both the chessclub library's built-in SQLite
+cache and the application's SQLAlchemy database for permanent
+persistence.
 
 Two-phase sync:
-  Phase 1 (automatic, ~15s): overview, members, tournaments,
-      leaderboard, attendance.
+  Phase 1 (automatic): overview, members, tournaments,
+      tournament results, leaderboard, attendance.
   Phase 2 (manual trigger): game archives for each tournament,
       processed one-by-one. Once complete, matchups and records
-      pages read from warm cache in <2 seconds.
+      are computed from permanent DB storage.
 """
 
 import json
@@ -106,13 +107,16 @@ def _make_sync_client(app) -> ChessComClient | None:
 def sync_club(slug: str, client: ChessComClient) -> None:
     """Sync light data for a club (Phase 1).
 
-    Updates ``sync_status`` in real time as each step completes.
-    Preserves existing ``game_sync`` progress if present.
+    Fetches data via the chessclub library and persists it to the
+    SQLAlchemy database. Updates ``sync_status`` in real time as
+    each step completes. Preserves existing ``game_sync`` progress.
 
     Args:
         slug: The club slug to sync.
         client: An authenticated ChessComClient.
     """
+    from app import db_service
+
     existing_game_sync = (
         sync_status["clubs"]
         .get(slug, {})
@@ -128,18 +132,21 @@ def sync_club(slug: str, client: ChessComClient) -> None:
     sync_status["clubs"][slug] = status
 
     year = datetime.now(UTC).year
+    club_svc = ClubService(client)
+
+    # Each step returns its result so we can persist it to the DB.
     steps = [
         (
             "club_overview",
-            lambda: ClubService(client).get_club(slug),
+            lambda: club_svc.get_club(slug),
         ),
         (
             "members",
-            lambda: ClubService(client).get_club_members(slug),
+            lambda: club_svc.get_club_members(slug),
         ),
         (
             "tournaments",
-            lambda: ClubService(client).get_club_tournaments(slug),
+            lambda: club_svc.get_club_tournaments(slug),
         ),
         (
             "leaderboard",
@@ -150,16 +157,44 @@ def sync_club(slug: str, client: ChessComClient) -> None:
             lambda: AttendanceService(client).get_attendance(slug, last_n=20),
         ),
     ]
+
+    tournaments_data = None
+
     for name, fn in steps:
         try:
-            fn()
+            result = fn()
             status["steps"][name] = "ok"
             log.info("Synced %s/%s", slug, name)
+
+            # Persist to database
+            if name == "club_overview" and result:
+                db_service.upsert_club(result)
+            elif name == "members" and result:
+                db_service.upsert_members(slug, result)
+            elif name == "tournaments" and result:
+                db_service.upsert_tournaments(result)
+                tournaments_data = result
         except Exception as exc:  # noqa: BLE001
             status["steps"][name] = str(exc)
             status["ok"] = False
             status["error"] = str(exc)
             log.warning("Sync failed %s/%s: %s", slug, name, exc)
+
+    # Fetch and persist tournament results (per-tournament)
+    if tournaments_data:
+        try:
+            for t in tournaments_data:
+                results = club_svc.get_tournament_results(t)
+                if results:
+                    db_service.upsert_results(results)
+            status["steps"]["tournament_results"] = "ok"
+            log.info("Synced %s/tournament_results", slug)
+        except Exception as exc:  # noqa: BLE001
+            status["steps"]["tournament_results"] = str(exc)
+            status["ok"] = False
+            status["error"] = str(exc)
+            log.warning("Sync failed %s/tournament_results: %s", slug, exc)
+
     status["synced_at"] = datetime.now(UTC)
 
 
@@ -215,14 +250,20 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
     """Pre-warm game archives for all tournaments of a club.
 
     Processes tournaments one by one (newest first), calling
-    ``client.get_tournament_games()`` for each. This populates
-    the SQLite cache so that matchups and records pages load
-    instantly afterward.
+    ``client.get_tournament_games()`` for each. Persists games
+    to the SQLAlchemy database for permanent storage.
+
+    After all tournaments are processed, computes and stores
+    club records.
 
     Args:
         slug: The club slug.
         client: An authenticated ChessComClient.
     """
+    from chessclub.services.records_service import RecordsService
+
+    from app import db_service
+
     tournaments = ClubService(client).get_club_tournaments(slug)
     tournaments.sort(key=lambda t: t.end_date or 0, reverse=True)
 
@@ -239,7 +280,9 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
     for t in tournaments:
         game_sync["current"] = t.name
         try:
-            client.get_tournament_games(t)
+            games = client.get_tournament_games(t)
+            if games:
+                db_service.upsert_games(t.id, games)
             log.info(
                 "Game sync %s: %s (%d/%d)",
                 slug,
@@ -256,6 +299,15 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
                 exc,
             )
         game_sync["done"] += 1
+
+    # Compute and store records after all games are cached
+    try:
+        records = RecordsService(client).get_records(slug)
+        if records:
+            db_service.store_records(slug, records)
+        log.info("Stored records for %s.", slug)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Failed to compute records for %s: %s", slug, exc)
 
     game_sync["running"] = False
     game_sync["current"] = None
