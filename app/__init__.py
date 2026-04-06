@@ -12,6 +12,15 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # ---------- Database ----------
+    from app.extensions import db
+
+    db.init_app(app)
+    with app.app_context():
+        from app import models  # noqa: F401
+
+        db.create_all()
+
     # ---------- Jinja2 filters ----------
     @app.template_filter("ts_to_date")
     def ts_to_date(ts):
@@ -40,22 +49,37 @@ def create_app():
     # ---------- Context processor ----------
     @app.context_processor
     def inject_auth_status():
-        """Inject auth flags into all templates."""
+        """Inject auth flags and sync status into all templates."""
+        from app.sync import sync_status
+
         token = app.config.get("CHESSCOM_SERVER_ACCESS_TOKEN", "")
         sessid = app.config.get("CHESSCOM_SERVER_PHPSESSID", "")
         client_id = app.config.get("CHESSCOM_OAUTH_CLIENT_ID", "")
         return {
             "server_auth_configured": bool(token and sessid),
             "oauth_configured": bool(client_id),
+            "sync_status": sync_status,
         }
 
     # ---------- Blueprints ----------
+    from app.admin import admin_bp
     from app.auth import auth_bp
     from app.club import club_bp
     from app.player import player_bp
 
+    app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(club_bp)
     app.register_blueprint(player_bp)
+
+    # ---------- Background sync scheduler ----------
+    # Skip scheduler in the Flask reloader child process to avoid
+    # running two schedulers simultaneously in debug mode.
+    import os
+
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from app.sync import init_scheduler
+
+        init_scheduler(app)
 
     return app

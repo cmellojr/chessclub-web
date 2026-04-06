@@ -29,3 +29,15 @@ class Config:
     # User-Agent sent with all API requests
     # (Chess.com requires a descriptive UA)
     USER_AGENT = "chessclub-web/1.0 (https://github.com/cmellojr/chessclub-web)"
+
+    # Background sync worker
+    SYNC_INTERVAL_HOURS = int(os.environ.get("SYNC_INTERVAL_HOURS", "6"))
+    WATCHED_CLUBS_FILE = os.environ.get(
+        "WATCHED_CLUBS_FILE", "watched_clubs.json"
+    )
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+    # Database
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URI", "sqlite:///chessclub.db"
+    )

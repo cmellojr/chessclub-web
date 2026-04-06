@@ -19,7 +19,7 @@ from flask import (
     url_for,
 )
 
-from app import chess_service
+from app import chess_service, db_service
 
 club_bp = Blueprint("club", __name__)
 
@@ -75,7 +75,7 @@ def search():
 
 
 # ---------------------------------------------------------------------------
-# Club pages
+# Club pages (DB first, library fallback)
 # ---------------------------------------------------------------------------
 
 
@@ -86,10 +86,18 @@ def overview(slug: str):
     Args:
         slug: The URL-friendly club identifier.
     """
+    club = db_service.get_club(slug)
+    if club:
+        return render_template(
+            "club/overview.html",
+            club=club,
+            slug=slug,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     try:
         client = chess_service.make_client(session)
-        svc = ClubService(client)
-        club = svc.get_club(slug)
+        club = ClubService(client).get_club(slug)
     except ChessclubError as exc:
         flash(str(exc), "danger")
         return redirect(url_for("club.index"))
@@ -108,10 +116,21 @@ def members(slug: str):
     Args:
         slug: The URL-friendly club identifier.
     """
+    club = db_service.get_club(slug)
+    members_list = db_service.get_members(slug)
+    if club and members_list is not None:
+        return render_template(
+            "club/members.html",
+            club=club,
+            slug=slug,
+            members=members_list,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     try:
         client = chess_service.make_client(session)
         svc = ClubService(client)
-        club = svc.get_club(slug)
+        club = club or svc.get_club(slug)
         members_list = svc.get_club_members(slug)
     except ChessclubError as exc:
         flash(str(exc), "danger")
@@ -129,18 +148,27 @@ def members(slug: str):
 def tournaments(slug: str):
     """Display tournaments organized by a club.
 
-    Requires authentication.
-
     Args:
         slug: The URL-friendly club identifier.
     """
+    club = db_service.get_club(slug)
+    tournaments_list = db_service.get_tournaments(slug)
+    if club and tournaments_list is not None:
+        return render_template(
+            "club/tournaments.html",
+            club=club,
+            slug=slug,
+            tournaments=tournaments_list,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     redir = _require_auth()
     if redir:
         return redir
     try:
         client = chess_service.make_client(session)
         svc = ClubService(client)
-        club = svc.get_club(slug)
+        club = club or svc.get_club(slug)
         tournaments_list = svc.get_club_tournaments(slug)
     except AuthenticationRequiredError:
         return _handle_auth_error()
@@ -160,22 +188,33 @@ def tournaments(slug: str):
 def leaderboard(slug: str):
     """Display the tournament leaderboard for a club.
 
-    Requires authentication. Accepts optional ``year`` and ``month`` query
-    parameters for filtering.
+    Accepts optional ``year`` and ``month`` query parameters.
 
     Args:
         slug: The URL-friendly club identifier.
     """
-    redir = _require_auth()
-    if redir:
-        return redir
-
     year = request.args.get("year", type=int)
     month = request.args.get("month", type=int)
 
+    club = db_service.get_club(slug)
+    stats = db_service.get_leaderboard(slug, year=year, month=month)
+    if club and stats is not None:
+        return render_template(
+            "club/leaderboard.html",
+            club=club,
+            slug=slug,
+            stats=stats,
+            year=year,
+            month=month,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
+    redir = _require_auth()
+    if redir:
+        return redir
     try:
         client = chess_service.make_client(session)
-        club = ClubService(client).get_club(slug)
+        club = club or ClubService(client).get_club(slug)
         stats = LeaderboardService(client).get_leaderboard(
             slug, year=year, month=month
         )
@@ -199,20 +238,31 @@ def leaderboard(slug: str):
 def matchups(slug: str):
     """Display head-to-head records between club members.
 
-    Requires authentication. Accepts an optional ``last_n`` query parameter.
+    Accepts an optional ``last_n`` query parameter.
 
     Args:
         slug: The URL-friendly club identifier.
     """
+    last_n = request.args.get("last_n", default=5, type=int) or None
+
+    club = db_service.get_club(slug)
+    matchups_list = db_service.get_matchups(slug, last_n=last_n)
+    if club and matchups_list is not None:
+        return render_template(
+            "club/matchups.html",
+            club=club,
+            slug=slug,
+            matchups=matchups_list,
+            last_n=last_n,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     redir = _require_auth()
     if redir:
         return redir
-
-    last_n = request.args.get("last_n", default=5, type=int) or None
-
     try:
         client = chess_service.make_client(session)
-        club = ClubService(client).get_club(slug)
+        club = club or ClubService(client).get_club(slug)
         matchups_list = MatchupService(client).get_matchups(slug, last_n=last_n)
     except AuthenticationRequiredError:
         return _handle_auth_error()
@@ -233,21 +283,34 @@ def matchups(slug: str):
 def attendance(slug: str):
     """Display tournament attendance statistics for club members.
 
-    Requires authentication. Accepts an optional ``last_n`` query parameter.
+    Accepts an optional ``last_n`` query parameter.
 
     Args:
         slug: The URL-friendly club identifier.
     """
+    last_n = request.args.get("last_n", default=None, type=int)
+
+    club = db_service.get_club(slug)
+    att_records = db_service.get_attendance(slug, last_n=last_n)
+    if club and att_records is not None:
+        return render_template(
+            "club/attendance.html",
+            club=club,
+            slug=slug,
+            records=att_records,
+            last_n=last_n,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     redir = _require_auth()
     if redir:
         return redir
-
-    last_n = request.args.get("last_n", default=None, type=int)
-
     try:
         client = chess_service.make_client(session)
-        club = ClubService(client).get_club(slug)
-        records = AttendanceService(client).get_attendance(slug, last_n=last_n)
+        club = club or ClubService(client).get_club(slug)
+        att_records = AttendanceService(client).get_attendance(
+            slug, last_n=last_n
+        )
     except AuthenticationRequiredError:
         return _handle_auth_error()
     except ChessclubError as exc:
@@ -257,7 +320,7 @@ def attendance(slug: str):
         "club/attendance.html",
         club=club,
         slug=slug,
-        records=records,
+        records=att_records,
         last_n=last_n,
         authenticated=True,
     )
@@ -267,21 +330,31 @@ def attendance(slug: str):
 def records(slug: str):
     """Display notable records and highlights for a club.
 
-    Requires authentication. Accepts an optional ``last_n`` query parameter
-    controlling how many recent tournaments are scanned for game-based records.
+    Accepts an optional ``last_n`` query parameter.
 
     Args:
         slug: The URL-friendly club identifier.
     """
+    last_n = request.args.get("last_n", default=5, type=int)
+
+    club = db_service.get_club(slug)
+    club_records = db_service.get_records(slug, last_n=last_n)
+    if club and club_records is not None:
+        return render_template(
+            "club/records.html",
+            club=club,
+            slug=slug,
+            records=club_records,
+            last_n=last_n,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
     redir = _require_auth()
     if redir:
         return redir
-
-    last_n = request.args.get("last_n", default=5, type=int)
-
     try:
         client = chess_service.make_client(session)
-        club = ClubService(client).get_club(slug)
+        club = club or ClubService(client).get_club(slug)
         club_records = RecordsService(client).get_records(slug, last_n=last_n)
     except AuthenticationRequiredError:
         return _handle_auth_error()

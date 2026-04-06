@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 
-from app import chess_service
+from app import chess_service, db_service
 
 player_bp = Blueprint("player", __name__, url_prefix="/player")
 
@@ -24,12 +24,31 @@ player_bp = Blueprint("player", __name__, url_prefix="/player")
 def rating_history(username: str):
     """Display a player's rating evolution across club tournaments.
 
-    Requires authentication. Accepts optional ``club`` and ``last_n`` query
-    parameters.
+    Accepts optional ``club`` and ``last_n`` query parameters.
 
     Args:
         username: The Chess.com username.
     """
+    slug = request.args.get("club", "").strip()
+    last_n = request.args.get("last_n", default=None, type=int)
+
+    if not slug:
+        flash("Provide the club slug via ?club= parameter.", "warning")
+        return redirect(url_for("club.index"))
+
+    # Try database first
+    snapshots = db_service.get_rating_history(slug, username, last_n=last_n)
+    if snapshots is not None:
+        return render_template(
+            "player/rating_history.html",
+            username=username,
+            slug=slug,
+            snapshots=snapshots,
+            last_n=last_n,
+            authenticated=chess_service.is_authenticated(session),
+        )
+
+    # Fall back to library (requires auth)
     if not chess_service.is_authenticated(session):
         flash(
             "This page requires Chess.com "
@@ -37,13 +56,6 @@ def rating_history(username: str):
             "warning",
         )
         return redirect(url_for("auth.setup"))
-
-    slug = request.args.get("club", "").strip()
-    last_n = request.args.get("last_n", default=None, type=int)
-
-    if not slug:
-        flash("Provide the club slug via ?club= parameter.", "warning")
-        return redirect(url_for("club.index"))
 
     try:
         client = chess_service.make_client(session)
