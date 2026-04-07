@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Members — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "members" %}
+{% include "club/_nav.html" with context %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">{{ members | length }} members</h5>
+</div>
+
+{% if members %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Username</th>
+        <th>Title</th>
+        <th>Rating</th>
+        <th>Activity</th>
+        <th>Joined</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+      <tr>
+        <td class="text-secondary">{{ loop.index }}</td>
+        <td>
+          <a href="https://www.chess.com/member/{{ m.username }}"
+             target="_blank" rel="noopener">{{ m.username }}</a>
+        </td>
+        <td>
+          {% if m.title %}
+            <span class="badge bg-warning text-dark">{{ m.title }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ m.rating if m.rating is not none else '—' }}</td>
+        <td>
+          {% if m.activity == 'weekly' %}
+            <span class="badge bg-success">Weekly</span>
+          {% elif m.activity == 'monthly' %}
+            <span class="badge bg-primary">Monthly</span>
+          {% elif m.activity == 'all_time' %}
+            <span class="badge bg-secondary">Irregular</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ m.joined_at | ts_to_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">No members found.</p>
+{% endif %}
+{% endblock %}

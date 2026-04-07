@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Credential Setup — Chess Club Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-7">
+    <h2 class="fw-bold mb-4">Credential Setup</h2>
+
+    {% if server_auth_configured %}
+    <div class="alert alert-success">
+      <strong>&#10003; Credentials configured.</strong> The portal is authenticated with Chess.com
+      and all sections are available.
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <strong>&#9888; Credentials not configured.</strong> Only public data (overview
+      and member list) are available. Follow the instructions below to enable
+      tournaments, leaderboard, matchups, attendance, and records.
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">How authentication works</div>
+      <div class="card-body">
+        <p>
+          The Chess.com internal API (used for tournaments and advanced statistics)
+          requires <strong>session cookies</strong> — not OAuth. Therefore, credentials
+          are configured once on the server via the <code>.env</code> file.
+        </p>
+        <p class="mb-0">
+          All portal visitors share these credentials — individual user login
+          is not required.
+        </p>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Step by step</div>
+      <div class="card-body">
+        <ol class="mb-0">
+          <li class="mb-3">
+            <strong>Install the chessclub Cookie Helper extension</strong>
+            (Chrome/Edge) from the library source code:<br>
+            <code>chessclub/tools/chessclub-cookie-helper/</code><br>
+            <small class="text-secondary">
+              Open <code>chrome://extensions</code>, enable "Developer mode",
+              and click "Load unpacked".
+            </small>
+          </li>
+          <li class="mb-3">
+            <strong>Log in to
+            <a href="https://www.chess.com" target="_blank" rel="noopener">Chess.com</a>
+            </strong> in the same browser.
+          </li>
+          <li class="mb-3">
+            <strong>Click the extension icon</strong> in the toolbar
+            and copy the <code>ACCESS_TOKEN</code> and
+            <code>PHPSESSID</code> values.<br>
+            <small class="text-secondary">
+              Alternatively: open Chrome DevTools (F12) &rarr;
+              Application &rarr; Cookies &rarr; <code>chess.com</code> and copy manually.
+            </small>
+          </li>
+          <li class="mb-3">
+            <strong>Paste the values into the server's <code>.env</code> file</strong>:
+            <pre class="bg-light p-3 rounded mt-2 mb-0"><code>CHESSCOM_SERVER_ACCESS_TOKEN=your_access_token_here
+CHESSCOM_SERVER_PHPSESSID=your_phpsessid_here</code></pre>
+          </li>
+          <li>
+            <strong>Restart the server</strong> (<code>python run.py</code>)
+            to load the new credentials.
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Important notes</div>
+      <div class="card-body">
+        <ul class="mb-0">
+          <li>
+            <code>ACCESS_TOKEN</code> expires in ~24 hours — you will need to
+            repeat the process daily for authenticated data.
+          </li>
+          <li>
+            <code>PHPSESSID</code> has a longer validity (~2 weeks).
+          </li>
+          <li>
+            Use a club member's account for best results.
+          </li>
+          <li>
+            Cookies are stored only in the server's <code>.env</code> file —
+            they are never exposed to the visitor's browser.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

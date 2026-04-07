@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "leaderboard" %}
+{% include "club/_nav.html" with context %}
+
+<!-- Period filters -->
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <label class="col-form-label">Year:</label>
+  </div>
+  <div class="col-auto">
+    <input type="number" class="form-control form-control-sm" name="year"
+           value="{{ year or '' }}" placeholder="All" min="2000" max="2100">
+  </div>
+  <div class="col-auto">
+    <label class="col-form-label">Month:</label>
+  </div>
+  <div class="col-auto">
+    <select class="form-select form-select-sm" name="month">
+      <option value="">All</option>
+      {% for m_num, m_name in [
+        (1,'January'),(2,'February'),(3,'March'),(4,'April'),
+        (5,'May'),(6,'June'),(7,'July'),(8,'August'),
+        (9,'September'),(10,'October'),(11,'November'),(12,'December')
+      ] %}
+        <option value="{{ m_num }}" {{ 'selected' if month == m_num }}>{{ m_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+    <a href="{{ url_for('club.leaderboard', slug=slug) }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+  </div>
+</form>
+
+{% if year %}
+  <p class="text-secondary small">
+    Period: {{ year }}{% if month %}/{{ '%02d' | format(month) }}{% endif %}
+  </p>
+{% endif %}
+
+{% if stats %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Player</th>
+        <th>Tournaments</th>
+        <th>Total score</th>
+        <th>Avg/tournament</th>
+        <th>Wins (1st)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in stats %}
+      <tr>
+        <td>
+          {% if loop.index == 1 %}&#129351;
+          {% elif loop.index == 2 %}&#129352;
+          {% elif loop.index == 3 %}&#129353;
+          {% else %}{{ loop.index }}{% endif %}
+        </td>
+        <td>
+          <a href="https://www.chess.com/member/{{ p.username }}"
+             target="_blank" rel="noopener">{{ p.username }}</a>
+        </td>
+        <td>{{ p.tournaments_played }}</td>
+        <td>{{ '%.1f' | format(p.total_score) }}</td>
+        <td>{{ '%.2f' | format(p.avg_score) }}</td>
+        <td>{{ p.wins }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">No data available for the selected period.</p>
+{% endif %}
+{% endblock %}

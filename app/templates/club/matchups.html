@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Matchups — {{ club.name }}{% endblock %}
+
+{% block content %}
+{% set active = "matchups" %}
+{% include "club/_nav.html" with context %}
+
+<!-- Filter -->
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <label class="col-form-label">Last tournaments:</label>
+  </div>
+  <div class="col-auto">
+    <input type="number" class="form-control form-control-sm" name="last_n"
+           value="{{ last_n or 5 }}" min="1" max="100" style="width:80px">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+    <a href="{{ url_for('club.matchups', slug=slug) }}" class="btn btn-outline-secondary btn-sm">All</a>
+  </div>
+  <div class="col-auto align-self-center">
+    <small class="text-secondary">(0 = all tournaments)</small>
+  </div>
+</form>
+
+{% if matchups %}
+<div class="table-responsive">
+  <table class="table table-hover table-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Player A</th>
+        <th>Wins A</th>
+        <th>Draws</th>
+        <th>Wins B</th>
+        <th>Player B</th>
+        <th>Total</th>
+        <th>Last played</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in matchups %}
+      <tr>
+        <td>
+          <a href="https://www.chess.com/member/{{ m.player_a }}"
+             target="_blank" rel="noopener">{{ m.player_a }}</a>
+        </td>
+        <td class="fw-bold {{ 'text-success' if m.wins_a > m.wins_b }}">{{ m.wins_a }}</td>
+        <td class="text-secondary">{{ m.draws }}</td>
+        <td class="fw-bold {{ 'text-success' if m.wins_b > m.wins_a }}">{{ m.wins_b }}</td>
+        <td>
+          <a href="https://www.chess.com/member/{{ m.player_b }}"
+             target="_blank" rel="noopener">{{ m.player_b }}</a>
+        </td>
+        <td>{{ m.total_games }}</td>
+        <td>{{ m.last_played | ts_to_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-secondary">No matchup data found.</p>
+{% endif %}
+{% endblock %}
