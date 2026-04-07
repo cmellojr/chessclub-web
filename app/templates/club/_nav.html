@@ -5,7 +5,7 @@
 <div class="mb-4">
   <h2 class="fw-bold">{{ club.name }}</h2>
   {% if club.description %}
-    <p class="text-secondary">{{ club.description }}</p>
+    <p class="text-secondary">{{ club.description | safe }}</p>
   {% endif %}
 
   <ul class="nav nav-tabs">

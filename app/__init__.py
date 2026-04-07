@@ -34,6 +34,22 @@ def create_app():
         except (ValueError, OSError):
             return "—"
 
+    @app.template_filter("country_flag")
+    def country_flag(country_url):
+        """Extract a flag emoji + code from a Chess.com country URL.
+
+        Example: "https://api.chess.com/pub/country/BR" → "🇧🇷 BR"
+        """
+        if not country_url or not isinstance(country_url, str):
+            return country_url or "—"
+        code = country_url.rstrip("/").split("/")[-1].upper()
+        if len(code) != 2 or not code.isalpha():
+            return country_url
+        flag = "".join(
+            chr(0x1F1E0 + ord(c) - ord("A")) for c in code
+        )
+        return f"{flag} {code}"
+
     @app.template_filter("ts_to_datetime")
     def ts_to_datetime(ts):
         """Convert a Unix timestamp to a formatted date-time string."""

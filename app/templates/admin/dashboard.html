@@ -3,6 +3,15 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
+{% set ns = namespace(any_sync_running=sync_status.running) %}
+{% for slug in watched_clubs %}
+  {% if sync_status.clubs.get(slug, {}).get('game_sync', {}).get('running') %}
+    {% set ns.any_sync_running = true %}
+  {% endif %}
+{% endfor %}
+{% if ns.any_sync_running %}
+<meta http-equiv="refresh" content="5">
+{% endif %}
 <div class="d-flex align-items-center justify-content-between mb-4">
   <h3>Admin Dashboard</h3>
   <div>
