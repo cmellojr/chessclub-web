@@ -1,0 +1,14 @@
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - db-data:/app/instance
+      - ./watched_clubs.json:/app/watched_clubs.json
+
+volumes:
+  db-data:

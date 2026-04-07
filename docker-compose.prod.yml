@@ -1,0 +1,9 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  web:
+    build:
+      target: prod
+    restart: unless-stopped
+    environment:
+      - FLASK_DEBUG=0
