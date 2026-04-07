@@ -101,7 +101,7 @@ ruff check --fix .
 ruff format .
 ```
 
-Code follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). Ruff enforces style rules — see [`pyproject.toml`](pyproject.toml) for configuration.
+Code follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) — Google-convention docstrings, type annotations on all function signatures, and standard import ordering. Ruff enforces style rules — see [`pyproject.toml`](pyproject.toml) for configuration.
 
 ## Tech Stack
 

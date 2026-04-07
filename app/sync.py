@@ -29,6 +29,7 @@ from chessclub.services.club_service import ClubService
 from chessclub.services.leaderboard_service import (
     LeaderboardService,
 )
+from flask import Flask
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def save_watched_clubs(path: str, clubs: list[str]) -> None:
     Path(path).write_text(json.dumps(clubs, indent=2) + "\n", encoding="utf-8")
 
 
-def _make_sync_client(app) -> ChessComClient | None:
+def _make_sync_client(app: Flask) -> ChessComClient | None:
     """Create a ChessComClient with server cookie credentials.
 
     Args:
@@ -198,7 +199,7 @@ def sync_club(slug: str, client: ChessComClient) -> None:
     status["synced_at"] = datetime.now(UTC)
 
 
-def run_sync(app) -> None:
+def run_sync(app: Flask) -> None:
     """Run Phase 1 sync for all watched clubs.
 
     Args:
@@ -225,7 +226,7 @@ def run_sync(app) -> None:
         log.info("Sync complete.")
 
 
-def trigger_sync_async(app) -> bool:
+def trigger_sync_async(app: Flask) -> bool:
     """Trigger Phase 1 sync in a background thread.
 
     Args:
@@ -333,7 +334,7 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
     log.info("Game sync complete for %s.", slug)
 
 
-def _run_game_sync(app, slug: str) -> None:
+def _run_game_sync(app: Flask, slug: str) -> None:
     """Run game sync inside an app context.
 
     Args:
@@ -348,7 +349,7 @@ def _run_game_sync(app, slug: str) -> None:
         sync_club_games(slug, client)
 
 
-def trigger_game_sync_async(app, slug: str) -> bool:
+def trigger_game_sync_async(app: Flask, slug: str) -> bool:
     """Trigger Phase 2 game sync in a background thread.
 
     Args:
@@ -376,7 +377,7 @@ def trigger_game_sync_async(app, slug: str) -> bool:
 # ------------------------------------------------------------------
 
 
-def init_scheduler(app) -> None:
+def init_scheduler(app: Flask) -> None:
     """Initialize APScheduler with the periodic sync job.
 
     Args:

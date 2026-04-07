@@ -7,7 +7,7 @@ from flask import Flask
 from config import Config
 
 
-def create_app():
+def create_app() -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -23,7 +23,7 @@ def create_app():
 
     # ---------- Jinja2 filters ----------
     @app.template_filter("ts_to_date")
-    def ts_to_date(ts):
+    def ts_to_date(ts: int | None) -> str:
         """Convert a Unix timestamp to a formatted date string."""
         if ts is None:
             return "—"
@@ -35,23 +35,22 @@ def create_app():
             return "—"
 
     @app.template_filter("country_flag")
-    def country_flag(country_url):
+    def country_flag(country_url: str | None) -> str:
         """Extract a flag emoji + code from a Chess.com country URL.
 
-        Example: "https://api.chess.com/pub/country/BR" → "🇧🇷 BR"
+        Example: ``"https://api.chess.com/pub/country/BR"`` becomes
+        ``"🇧🇷 BR"``.
         """
         if not country_url or not isinstance(country_url, str):
             return country_url or "—"
         code = country_url.rstrip("/").split("/")[-1].upper()
         if len(code) != 2 or not code.isalpha():
             return country_url
-        flag = "".join(
-            chr(0x1F1E0 + ord(c) - ord("A")) for c in code
-        )
+        flag = "".join(chr(0x1F1E0 + ord(c) - ord("A")) for c in code)
         return f"{flag} {code}"
 
     @app.template_filter("ts_to_datetime")
-    def ts_to_datetime(ts):
+    def ts_to_datetime(ts: int | None) -> str:
         """Convert a Unix timestamp to a formatted date-time string."""
         if ts is None:
             return "—"
@@ -64,7 +63,7 @@ def create_app():
 
     # ---------- Context processor ----------
     @app.context_processor
-    def inject_auth_status():
+    def inject_auth_status() -> dict:
         """Inject auth flags and sync status into all templates."""
         from app.sync import sync_status
 

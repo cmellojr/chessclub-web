@@ -67,9 +67,14 @@ Routes use a **DB-first, library fallback** pattern:
 
 ## Code Conventions
 
-- **Style**: Google Python Style Guide (docstrings, imports, types).
-- **Linter**: Ruff — 80-char line length, rules: E, W, F, I, N, UP, D (Google convention). Config in `pyproject.toml`.
-- **Python**: 3.11+ (uses `X | Y` union syntax, `datetime.UTC`).
+Follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html):
+
+- **Docstrings**: Google convention — one-line summary in imperative mood, then `Args:`, `Returns:`, `Raises:` sections where applicable.
+- **Type annotations**: All function signatures must have parameter and return type annotations. Use `X | Y` union syntax (Python 3.11+).
+- **Imports**: stdlib → third-party → local. Enforced by ruff isort rules. No deferred imports except to break circular dependencies.
+- **Naming**: `snake_case` for functions/variables/modules, `CamelCase` for classes, `UPPER_CASE` for constants.
+- **Linter**: Ruff — 80-char line length, rules: E, W, F, I, N, UP, D. Config in `pyproject.toml`.
+- **Python**: 3.11+ (uses `datetime.UTC`, `X | Y` union syntax).
 - **Frontend**: Bootstrap 5.3 via CDN + Jinja2 templates. No JavaScript build step.
 - **Language**: All user-facing text in English.
 - **Commits**: Conventional-style messages — short imperative summary, no prefix required.

@@ -132,7 +132,7 @@ def members(slug: str):
         svc = ClubService(client)
         club = svc.get_club(slug)
         members_list = svc.get_club_members(slug)
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(
@@ -172,7 +172,7 @@ def tournaments(slug: str):
         tournaments_list = svc.get_club_tournaments(slug)
     except AuthenticationRequiredError:
         return _handle_auth_error()
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(
@@ -220,7 +220,7 @@ def leaderboard(slug: str):
         )
     except AuthenticationRequiredError:
         return _handle_auth_error()
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(
@@ -266,7 +266,7 @@ def matchups(slug: str):
         matchups_list = MatchupService(client).get_matchups(slug, last_n=last_n)
     except AuthenticationRequiredError:
         return _handle_auth_error()
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(
@@ -313,7 +313,7 @@ def attendance(slug: str):
         )
     except AuthenticationRequiredError:
         return _handle_auth_error()
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(
@@ -358,7 +358,7 @@ def records(slug: str):
         club_records = RecordsService(client).get_records(slug, last_n=last_n)
     except AuthenticationRequiredError:
         return _handle_auth_error()
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.overview", slug=slug))
     return render_template(

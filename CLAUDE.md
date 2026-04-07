@@ -51,9 +51,14 @@ Routes use **DB-first, library fallback**: `db_service.get_X()` returns data ins
 
 ## Code Style
 
-- **Google Python Style Guide** — docstrings, imports, type annotations
+Follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html):
+
+- **Docstrings**: Google convention — one-line summary, `Args:`, `Returns:`, `Raises:` sections
+- **Type annotations**: All function signatures must have parameter and return type annotations
+- **Imports**: stdlib → third-party → local, enforced by `ruff` isort rules
+- **Naming**: `snake_case` functions/variables, `CamelCase` classes, `UPPER_CASE` constants
 - **Ruff** with 80-char line length, rules: E, W, F, I, N, UP, D (see `pyproject.toml`)
-- Python 3.11+
+- Python 3.11+ — uses `X | Y` union syntax, `datetime.UTC`
 - **Frontend**: Bootstrap 5.3 via CDN + Jinja2 templates — no JS build step
 - All user-facing text in English
 

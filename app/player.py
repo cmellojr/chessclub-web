@@ -1,9 +1,6 @@
 """Blueprint for player-related pages."""
 
-from chessclub.core.exceptions import (
-    AuthenticationRequiredError,
-    ChessclubError,
-)
+from chessclub.core.exceptions import AuthenticationRequiredError
 from chessclub.services.rating_history_service import RatingHistoryService
 from flask import (
     Blueprint,
@@ -69,7 +66,7 @@ def rating_history(username: str):
             "danger",
         )
         return redirect(url_for("auth.setup"))
-    except (ChessclubError, Exception) as exc:
+    except Exception as exc:  # noqa: BLE001
         flash(str(exc), "danger")
         return redirect(url_for("club.index"))
 

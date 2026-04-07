@@ -7,6 +7,7 @@ dataclass instances so that templates need zero changes.
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from collections import defaultdict
 
@@ -302,8 +303,6 @@ def get_leaderboard(
         A list of PlayerStats sorted by total_score descending,
         or None if no results are stored.
     """
-    import datetime as dt
-
     query = (
         db.session.query(TournamentResultModel)
         .join(TournamentModel)
