@@ -400,7 +400,7 @@ Chess.com API communication. Key integration points:
 | `db_service.py` | Dataclass imports: `Club`, `Member`, `Tournament`, `TournamentResult`, `Game`, `ClubRecord`, `Matchup`, `PlayerStats`, `AttendanceRecord`, `RatingSnapshot` |
 
 The library provides:
-- HTTP client with built-in SQLite cache (see [CACHE.md](CACHE.md))
+- HTTP client with built-in SQLite cache (see [cache.md](cache.md))
 - Service classes that parse Chess.com API responses into typed dataclasses
 - Cookie and OAuth authentication providers
 
