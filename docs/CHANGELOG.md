@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-04-06
+## [0.1.3] - 2026-04-06
 
 ### Added
 
@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md` with badges, features, quick start, and architecture overview.
 - `AGENTS.md` for AI coding agents (Jules, Codex, Copilot, Cursor).
 - `CLAUDE.md` with project conventions and development commands.
+- Project documentation: `ARCHITECTURE.md`, `CACHE.md`, `CHANGELOG.md`.
 
 ### Changed
 
@@ -43,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Club overview displaying raw Chess.com API URL instead of country name.
 - HTML entities in club descriptions not rendering correctly in navigation.
 
-## [0.2.0] - 2026-03-19
+## [0.1.2] - 2026-03-19
 
 ### Added
 
@@ -56,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `watched_clubs.json` configuration file for clubs to sync.
 - `ADMIN_PASSWORD` and `SYNC_INTERVAL_HOURS` environment variables.
 
-## [0.1.0] - 2026-03-18
+## [0.1.1] - 2026-03-18
 
 ### Added
 
@@ -69,14 +70,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Club search on the index page.
 - All user-facing text in English.
 
-## [0.0.0] - 2026-02-27
+## [0.1.0] - 2026-02-27
 
 ### Added
 
 - Initial repository setup with `.gitignore` and `LICENSE`.
 
-[Unreleased]: https://github.com/cmellojr/chessclub-web/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/cmellojr/chessclub-web/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/cmellojr/chessclub-web/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/cmellojr/chessclub-web/compare/v0.0.0...v0.1.0
-[0.0.0]: https://github.com/cmellojr/chessclub-web/releases/tag/v0.0.0
+[Unreleased]: https://github.com/cmellojr/chessclub-web/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/cmellojr/chessclub-web/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/cmellojr/chessclub-web/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/cmellojr/chessclub-web/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/cmellojr/chessclub-web/releases/tag/v0.1.0
