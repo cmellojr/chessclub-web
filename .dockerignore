@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+.ruff_cache
+.claude
+__pycache__
+*.pyc
+*.pyo
+*.db
+instance/
+.env
+*.md
+LICENSE
+docs/
