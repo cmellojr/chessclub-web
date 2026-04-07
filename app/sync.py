@@ -247,14 +247,14 @@ def trigger_sync_async(app) -> bool:
 
 
 def sync_club_games(slug: str, client: ChessComClient) -> None:
-    """Pre-warm game archives for all tournaments of a club.
+    """Sync game archives for all finished tournaments of a club.
 
-    Processes tournaments one by one (newest first), calling
-    ``client.get_tournament_games()`` for each. Persists games
-    to the SQLAlchemy database for permanent storage.
+    **Incremental:** skips tournaments that already have games
+    stored in the database, and only processes finished ones.
+    This minimizes HTTP requests to Chess.com.
 
-    After all tournaments are processed, computes and stores
-    club records.
+    After new games are fetched, recomputes and stores club
+    records.
 
     Args:
         slug: The club slug.
@@ -264,20 +264,33 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
 
     from app import db_service
 
-    tournaments = ClubService(client).get_club_tournaments(slug)
-    tournaments.sort(key=lambda t: t.end_date or 0, reverse=True)
+    all_tournaments = ClubService(client).get_club_tournaments(slug)
+    all_tournaments.sort(key=lambda t: t.end_date or 0, reverse=True)
+
+    # Only sync finished tournaments; skip those already in DB
+    finished = [t for t in all_tournaments if t.status == "finished"]
+    pending = [t for t in finished if not db_service.has_games(t.id)]
+    skipped = len(finished) - len(pending)
 
     club_status = sync_status["clubs"].get(slug, {})
     game_sync = club_status.get("game_sync", _default_game_sync())
     club_status["game_sync"] = game_sync
 
     game_sync["running"] = True
-    game_sync["total"] = len(tournaments)
+    game_sync["total"] = len(pending)
     game_sync["done"] = 0
     game_sync["errors"] = []
     game_sync["completed_at"] = None
 
-    for t in tournaments:
+    if skipped:
+        log.info(
+            "Game sync %s: %d already in DB, %d to fetch.",
+            slug,
+            skipped,
+            len(pending),
+        )
+
+    for t in pending:
         game_sync["current"] = t.name
         try:
             games = client.get_tournament_games(t)
@@ -300,14 +313,19 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
             )
         game_sync["done"] += 1
 
-    # Compute and store records after all games are cached
-    try:
-        records = RecordsService(client).get_records(slug)
-        if records:
-            db_service.store_records(slug, records)
-        log.info("Stored records for %s.", slug)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Failed to compute records for %s: %s", slug, exc)
+    # Recompute records if new games were fetched
+    if pending:
+        try:
+            records = RecordsService(client).get_records(slug)
+            if records:
+                db_service.store_records(slug, records)
+            log.info("Stored records for %s.", slug)
+        except Exception as exc:  # noqa: BLE001
+            log.warning(
+                "Failed to compute records for %s: %s",
+                slug,
+                exc,
+            )
 
     game_sync["running"] = False
     game_sync["current"] = None

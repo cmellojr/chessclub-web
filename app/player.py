@@ -36,19 +36,20 @@ def rating_history(username: str):
         flash("Provide the club slug via ?club= parameter.", "warning")
         return redirect(url_for("club.index"))
 
-    # Try database first
-    snapshots = db_service.get_rating_history(slug, username, last_n=last_n)
-    if snapshots is not None:
+    # Try database first — for watched clubs, always use DB
+    club = db_service.get_club(slug)
+    if club:
+        snapshots = db_service.get_rating_history(slug, username, last_n=last_n)
         return render_template(
             "player/rating_history.html",
             username=username,
             slug=slug,
-            snapshots=snapshots,
+            snapshots=snapshots or [],
             last_n=last_n,
             authenticated=chess_service.is_authenticated(session),
         )
 
-    # Fall back to library (requires auth)
+    # Non-watched club — fall back to library (requires auth)
     if not chess_service.is_authenticated(session):
         flash(
             "This page requires Chess.com "
@@ -68,7 +69,7 @@ def rating_history(username: str):
             "danger",
         )
         return redirect(url_for("auth.setup"))
-    except ChessclubError as exc:
+    except (ChessclubError, Exception) as exc:
         flash(str(exc), "danger")
         return redirect(url_for("club.index"))
 

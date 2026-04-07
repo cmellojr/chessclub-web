@@ -154,6 +154,23 @@ def upsert_games(tournament_id: str, games: list[Game]) -> None:
     db.session.commit()
 
 
+def has_games(tournament_id: str) -> bool:
+    """Check if a tournament already has games stored.
+
+    Args:
+        tournament_id: The tournament identifier.
+
+    Returns:
+        True if at least one game exists for this tournament.
+    """
+    return (
+        db.session.query(GameModel.id)
+        .filter_by(tournament_id=tournament_id)
+        .first()
+        is not None
+    )
+
+
 def store_records(club_id: str, records: list[ClubRecord]) -> None:
     """Replace all records for a club.
 
