@@ -83,6 +83,20 @@ Follows the [Google Python Style Guide](https://google.github.io/styleguide/pygu
 
 Runtime dependencies are in `requirements.txt`. The `chessclub` library is installed from GitHub by default; for local development, use `pip install -e ../chessclub`.
 
+### chessclub Library
+
+- Providers: `chessclub.providers.chesscom` (`ChessComClient`,
+  `ChessComCookieAuth`, `ChessComOAuth`).
+- Exceptions: `chessclub.core.exceptions` (`ChessclubError`,
+  `AuthenticationRequiredError`).
+- Services: `chessclub.services.{club,leaderboard,matchup,attendance,records,rating_history}_service`.
+- Core dataclasses: `Club`, `Member`, `Tournament`, `TournamentResult`,
+  `Game`, `PlayerStats`, `Matchup`, `AttendanceRecord`, `ClubRecord`,
+  `RatingSnapshot`.
+
+Public Chess.com API access only covers club overview and member lists.
+Other data requires server cookie authentication.
+
 ## Environment Variables
 
 See `.env.example` for full documentation. Key variables:
@@ -94,6 +108,7 @@ See `.env.example` for full documentation. Key variables:
 | `CHESSCOM_SERVER_ACCESS_TOKEN` | For sync | Chess.com browser cookie |
 | `CHESSCOM_SERVER_PHPSESSID` | For sync | Chess.com browser cookie |
 | `CHESSCOM_OAUTH_CLIENT_ID` | Optional | OAuth PKCE for user login |
+| `OAUTH_REDIRECT_URI` | Optional | OAuth PKCE redirect URL |
 | `SYNC_INTERVAL_HOURS` | No | Default: 6 |
 | `DATABASE_URI` | No | Default: `sqlite:///chessclub.db` |
 
@@ -120,6 +135,11 @@ data = SomeService(client).get_X(slug)
 3. Add read logic in `db_service.py` (read function returning library dataclass).
 4. Persist in `app/sync.py` after fetching from library.
 
+## Branching
+
+- `main` — stable releases.
+- `feature/*` — feature branches.
+
 ## File Structure
 
 ```
@@ -142,6 +162,5 @@ chessclub-web/
 │   ├── admin.py            # Admin blueprint
 │   └── templates/          # Jinja2 templates (Bootstrap 5.3)
 ├── .env.example            # Environment variable documentation
-├── CLAUDE.md               # Claude Code guidance
 └── AGENTS.md               # This file
 ```
