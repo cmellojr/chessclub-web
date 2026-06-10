@@ -39,7 +39,7 @@ Overview, Members, Tournaments, Leaderboard, Matchups, Attendance, Records, Rati
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). AI coding agents see [`AGENTS.md`](AGENTS.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
