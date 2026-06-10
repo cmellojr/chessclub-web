@@ -28,7 +28,7 @@ Two-tier cache + background sync. See [`docs/architecture.md`](docs/architecture
 
 ## Features
 
-Overview, Members, Tournaments, Leaderboard, Matchups, Attendance, Records, Rating History, Background Sync, Admin Dashboard. See [`docs/FEATURE-MAP.md`](docs/FEATURE-MAP.md).
+Overview, Members, Tournaments, Leaderboard, Matchups, Attendance, Records, Rating History, Background Sync, Admin Dashboard. See [`docs/features.md`](docs/features.md).
 
 ## Tech Stack
 
