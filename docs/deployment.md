@@ -202,12 +202,13 @@ restricted-access file for production secrets. The `.dockerignore` excludes
 
 ## Health Checks
 
-The application has no built-in `/health` endpoint. For Docker health checks:
+The application exposes a built-in `GET /health` endpoint. For Docker
+health checks:
 
 ```yaml
 # docker-compose.yml snippet
 healthcheck:
-  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+  test: ["CMD", "python", "-c", "import urllib.request; json.loads(urllib.request.urlopen('http://localhost:5000/health').read())['status'] == 'ok' or exit(1)"]
   interval: 30s
   timeout: 10s
   retries: 3

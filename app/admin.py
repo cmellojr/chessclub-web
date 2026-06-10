@@ -1,9 +1,14 @@
 """Admin blueprint for managing the background sync worker."""
 
+import secrets
+import time
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from flask import (
     Blueprint,
+    Response,
     current_app,
     flash,
     redirect,
@@ -14,9 +19,9 @@ from flask import (
 )
 
 from app.sync import (
+    get_sync_status,
     get_watched_clubs,
     save_watched_clubs,
-    sync_status,
     trigger_game_sync_async,
     trigger_sync_async,
 )
@@ -24,7 +29,47 @@ from app.sync import (
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
-def _require_admin(f):
+# ------------------------------------------------------------------
+# CSRF Protection
+# ------------------------------------------------------------------
+
+
+def _generate_csrf_token() -> str:
+    """Get or create a CSRF token in the session."""
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
+@admin_bp.context_processor
+def inject_csrf_token() -> dict:
+    """Inject CSRF token into all admin templates."""
+    return {"csrf_token": _generate_csrf_token()}
+
+
+def _csrf_required(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that validates CSRF token on POST requests.
+
+    Args:
+        f: The view function to wrap.
+
+    Returns:
+        The wrapped view function.
+    """
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.method == "POST":
+            token = request.form.get("csrf_token")
+            if not token or token != session.get("csrf_token"):
+                flash("Invalid or missing CSRF token.", "danger")
+                return redirect(request.referrer or url_for("admin.dashboard"))
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def _require_admin(f: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator that restricts access to admin-authenticated users.
 
     Args:
@@ -51,8 +96,13 @@ def _require_admin(f):
 
 
 @admin_bp.route("/login", methods=["GET", "POST"])
-def login():
-    """Admin login page with simple password authentication."""
+@_csrf_required
+def login() -> str | Response:
+    """Admin login page with simple password authentication.
+
+    Returns:
+        The rendered login template, or a redirect on success or error.
+    """
     password = current_app.config.get("ADMIN_PASSWORD", "")
     if not password:
         flash(
@@ -64,14 +114,19 @@ def login():
     if request.method == "POST":
         if request.form.get("password") == password:
             session["admin_authenticated"] = True
+            session["admin_last_active"] = time.time()
             return redirect(url_for("admin.dashboard"))
         flash("Incorrect password.", "danger")
     return render_template("admin/login.html")
 
 
 @admin_bp.route("/logout")
-def logout():
-    """Log out of the admin panel."""
+def logout() -> Response:
+    """Log out of the admin panel.
+
+    Returns:
+        A redirect to the homepage.
+    """
     session.pop("admin_authenticated", None)
     flash("Logged out of admin panel.", "info")
     return redirect(url_for("club.index"))
@@ -79,23 +134,31 @@ def logout():
 
 @admin_bp.route("/")
 @_require_admin
-def dashboard():
-    """Admin dashboard showing sync status per club."""
+def dashboard() -> str:
+    """Admin dashboard showing sync status per club.
+
+    Returns:
+        The rendered dashboard template.
+    """
     clubs_file = current_app.config.get(
         "WATCHED_CLUBS_FILE", "watched_clubs.json"
     )
     clubs = get_watched_clubs(clubs_file)
     return render_template(
         "admin/dashboard.html",
-        sync_status=sync_status,
+        sync_status=get_sync_status(),
         watched_clubs=clubs,
     )
 
 
 @admin_bp.route("/clubs")
 @_require_admin
-def clubs():
-    """Manage the list of watched clubs."""
+def clubs() -> str:
+    """Manage the list of watched clubs.
+
+    Returns:
+        The rendered clubs management template.
+    """
     clubs_file = current_app.config.get(
         "WATCHED_CLUBS_FILE", "watched_clubs.json"
     )
@@ -108,8 +171,13 @@ def clubs():
 
 @admin_bp.route("/clubs/add", methods=["POST"])
 @_require_admin
-def add_club():
-    """Add a club slug to the watched list."""
+@_csrf_required
+def add_club() -> Response:
+    """Add a club slug to the watched list.
+
+    Returns:
+        A redirect to the clubs management page.
+    """
     slug = request.form.get("slug", "").strip().lower()
     if not slug:
         flash("Please enter a club slug.", "warning")
@@ -130,8 +198,13 @@ def add_club():
 
 @admin_bp.route("/clubs/remove", methods=["POST"])
 @_require_admin
-def remove_club():
-    """Remove a club slug from the watched list."""
+@_csrf_required
+def remove_club() -> Response:
+    """Remove a club slug from the watched list.
+
+    Returns:
+        A redirect to the clubs management page.
+    """
     slug = request.form.get("slug", "").strip().lower()
     clubs_file = current_app.config.get(
         "WATCHED_CLUBS_FILE", "watched_clubs.json"
@@ -148,8 +221,13 @@ def remove_club():
 
 @admin_bp.route("/sync", methods=["POST"])
 @_require_admin
-def trigger_sync():
-    """Trigger a Phase 1 sync run in the background."""
+@_csrf_required
+def trigger_sync() -> Response:
+    """Trigger a Phase 1 sync run in the background.
+
+    Returns:
+        A redirect to the admin dashboard.
+    """
     started = trigger_sync_async(current_app._get_current_object())
     if started:
         flash("Sync started in background.", "info")
@@ -160,11 +238,15 @@ def trigger_sync():
 
 @admin_bp.route("/sync-games/<slug>", methods=["POST"])
 @_require_admin
-def trigger_game_sync(slug: str):
+@_csrf_required
+def trigger_game_sync(slug: str) -> Response:
     """Trigger Phase 2 game archive sync for a specific club.
 
     Args:
         slug: The club slug to sync games for.
+
+    Returns:
+        A redirect to the admin dashboard.
     """
     started = trigger_game_sync_async(current_app._get_current_object(), slug)
     if started:

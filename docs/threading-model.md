@@ -254,10 +254,10 @@ SQLite uses reader-writer locks:
 
 | Variable | Type | Accessed By | Thread-Safe? |
 |----------|------|-------------|--------------|
-| `sync_status` | `dict` | Routes (read), sync threads (write) | **No** — write contention is low-risk (single writer at a time due to phase gates), but reads from routes may see partial updates. |
+| `sync_status` | `dict` | Routes (read), sync threads (write) | **Yes** — protected by `_sync_lock` (`threading.Lock`). Reads acquire a lock and return a shallow copy; writes always acquire the lock. |
 | `_scheduler` | `BackgroundScheduler` | Scheduler thread only | Yes — only the scheduler thread accesses it after init. |
 | SQLAlchemy session | `scoped_session` | Per-request + per-thread | Yes — Flask-SQLAlchemy uses thread-local scoped sessions. Each thread gets its own session. |
-| `watched_clubs.json` | File | Admin routes (write), sync (read) | **No** — write from admin route and read from sync thread can race. The window is small; the sync thread reads the file at the start of `run_sync()`. |
+| `watched_clubs.json` | File | Admin routes (write), sync (read) | **Yes** — writes use `portalocker.Lock` for cross-platform file locking with a 5-second timeout. Reads (JSON parse) are not locked, but write-write races are prevented. |
 
 ### Flask App Context
 

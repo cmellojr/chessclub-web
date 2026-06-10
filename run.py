@@ -10,7 +10,12 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
-app = create_app()
+
+def main() -> None:
+    """Run the Flask development server."""
+    app = create_app()
+    app.run(debug=True)
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()

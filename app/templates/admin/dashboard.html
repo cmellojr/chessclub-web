@@ -17,6 +17,7 @@
   <div>
     <a href="{{ url_for('admin.clubs') }}" class="btn btn-outline-dark btn-sm">Manage clubs</a>
     <form class="d-inline" method="post" action="{{ url_for('admin.trigger_sync') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button type="submit" class="btn btn-dark btn-sm"
               {{ 'disabled' if sync_status.running }}>
         {% if sync_status.running %}Syncing...{% else %}Sync now{% endif %}
@@ -130,6 +131,7 @@
           {% else %}
             <form class="d-inline" method="post"
                   action="{{ url_for('admin.trigger_game_sync', slug=slug) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit" class="btn btn-sm btn-outline-dark">Sync games</button>
             </form>
           {% endif %}

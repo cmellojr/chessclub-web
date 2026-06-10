@@ -13,6 +13,7 @@
   <div class="card-body">
     <h5 class="card-title">Add Club</h5>
     <form method="post" action="{{ url_for('admin.add_club') }}" class="row g-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="col-auto">
         <input type="text" class="form-control form-control-sm" name="slug"
                placeholder="club-slug" required>
@@ -31,6 +32,7 @@
   <div class="list-group-item d-flex justify-content-between align-items-center">
     <a href="{{ url_for('club.overview', slug=slug) }}">{{ slug }}</a>
     <form method="post" action="{{ url_for('admin.remove_club') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="slug" value="{{ slug }}">
       <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
     </form>

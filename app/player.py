@@ -1,9 +1,14 @@
 """Blueprint for player-related pages."""
 
-from chessclub.core.exceptions import AuthenticationRequiredError
+import requests
+from chessclub.core.exceptions import (
+    AuthenticationRequiredError,
+    ChessclubError,
+)
 from chessclub.services.rating_history_service import RatingHistoryService
 from flask import (
     Blueprint,
+    Response,
     flash,
     redirect,
     render_template,
@@ -18,13 +23,16 @@ player_bp = Blueprint("player", __name__, url_prefix="/player")
 
 
 @player_bp.route("/<username>/rating-history")
-def rating_history(username: str):
+def rating_history(username: str) -> str | Response:
     """Display a player's rating evolution across club tournaments.
 
     Accepts optional ``club`` and ``last_n`` query parameters.
 
     Args:
         username: The Chess.com username.
+
+    Returns:
+        The rendered rating history template, or a redirect on error.
     """
     slug = request.args.get("club", "").strip()
     last_n = request.args.get("last_n", default=None, type=int)
@@ -66,7 +74,7 @@ def rating_history(username: str):
             "danger",
         )
         return redirect(url_for("auth.setup"))
-    except Exception as exc:  # noqa: BLE001
+    except (ChessclubError, requests.RequestException) as exc:
         flash(str(exc), "danger")
         return redirect(url_for("club.index"))
 

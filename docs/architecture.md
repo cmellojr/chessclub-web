@@ -410,11 +410,17 @@ The library provides:
 
 - **Admin panel** is password-protected via `ADMIN_PASSWORD` env var.
   Disabled entirely when the variable is empty.
+- **CSRF protection** is enforced on all admin POST routes via a
+  per-session token decorator (`_csrf_required`).
+- **Admin session timeout** — `admin_authenticated` expires after 30
+  minutes of inactivity (configurable via `ADMIN_SESSION_TIMEOUT_MINUTES`).
+  Checked on every request via `before_request` handler.
 - **OAuth tokens** are stored in the Flask session (server-side signed cookie).
   The `_SessionOAuthProvider` checks expiry with a 60-second buffer.
 - **Server cookies** (`ACCESS_TOKEN`, `PHPSESSID`) are never exposed to
   clients — they remain in server-side `.env` configuration.
-- **CSRF protection** is not implemented (all state-changing admin routes use
-  POST, but no token verification).
-- **Exception handling** catches broad `Exception` in routes to prevent
-  internal error details from leaking to users.
+- **Exception handling** uses specific exception types in routes. Custom
+  error handlers (`@app.errorhandler`) render safe pages for 404, 500,
+  and 403 without leaking internals.
+- **Health endpoint** `GET /health` returns JSON status without requiring
+  authentication, suitable for load balancer checks.

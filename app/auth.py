@@ -129,6 +129,71 @@ def callback():
     return redirect(next_url)
 
 
+def refresh_oauth_token(session_data: dict) -> bool:
+    """Refresh the OAuth token if expired and a refresh_token exists.
+
+    On success, updates ``session_data["oauth_token"]`` and
+    ``session_data["chess_username"]`` in-place.  On failure (expired,
+    missing, or invalid refresh token), clears both keys.
+
+    Args:
+        session_data: The Flask session dict.
+
+    Returns:
+        True if a valid token is present (either still fresh or
+        successfully refreshed), False otherwise.
+    """
+    token_data = session_data.get("oauth_token")
+    if not token_data or "access_token" not in token_data:
+        return False
+
+    expires_at = token_data.get("expires_at", 0)
+    if time.time() < expires_at - 60:
+        return True
+
+    refresh_token = token_data.get("refresh_token")
+    if not refresh_token:
+        session_data.pop("oauth_token", None)
+        session_data.pop("chess_username", None)
+        return False
+
+    client_id = current_app.config.get("CHESSCOM_OAUTH_CLIENT_ID", "")
+    if not client_id:
+        session_data.pop("oauth_token", None)
+        session_data.pop("chess_username", None)
+        return False
+
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": client_id,
+        "refresh_token": refresh_token,
+    }
+    client_secret = current_app.config.get(
+        "CHESSCOM_OAUTH_CLIENT_SECRET", ""
+    )
+    if client_secret:
+        data["client_secret"] = client_secret
+
+    try:
+        resp = requests.post(_CHESSCOM_TOKEN_URL, data=data, timeout=30)
+        resp.raise_for_status()
+        new_token = resp.json()
+    except requests.RequestException:
+        session_data.pop("oauth_token", None)
+        session_data.pop("chess_username", None)
+        return False
+
+    session_data["oauth_token"] = {
+        "access_token": new_token["access_token"],
+        "refresh_token": new_token.get("refresh_token"),
+        "expires_at": time.time() + new_token.get("expires_in", 3600),
+    }
+    session_data["chess_username"] = (
+        new_token.get("username") or new_token.get("login") or ""
+    )
+    return True
+
+
 @auth_bp.route("/logout")
 def logout():
     """Clear the user's OAuth credentials from the session."""

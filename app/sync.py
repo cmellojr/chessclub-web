@@ -19,6 +19,7 @@ import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
+import portalocker
 from apscheduler.schedulers.background import BackgroundScheduler
 from chessclub.providers.chesscom import (
     ChessComClient,
@@ -39,11 +40,24 @@ sync_status: dict = {
     "clubs": {},
 }
 
+_sync_lock = threading.Lock()
+
+
+def get_sync_status() -> dict:
+    """Return a thread-safe shallow copy of sync_status."""
+    with _sync_lock:
+        return dict(sync_status)
+
+
 _scheduler: BackgroundScheduler | None = None
 
 
 def _default_game_sync() -> dict:
-    """Return a fresh game_sync status dict."""
+    """Return a fresh game_sync status dict.
+
+    Returns:
+        A dict with default values for game sync tracking.
+    """
     return {
         "running": False,
         "total": 0,
@@ -73,13 +87,17 @@ def get_watched_clubs(path: str) -> list[str]:
 
 
 def save_watched_clubs(path: str, clubs: list[str]) -> None:
-    """Write the watched clubs list to a JSON file.
+    """Write the watched clubs list to a JSON file with file locking.
+
+    Uses a cross-platform file lock (portalocker) to prevent
+    concurrent writes from corrupting the file.
 
     Args:
         path: Path to the JSON file.
         clubs: List of club slug strings.
     """
-    Path(path).write_text(json.dumps(clubs, indent=2) + "\n", encoding="utf-8")
+    with portalocker.Lock(path, mode="w", timeout=5, encoding="utf-8") as f:
+        f.write(json.dumps(clubs, indent=2) + "\n")
 
 
 def _make_sync_client(app: Flask) -> ChessComClient | None:
@@ -118,11 +136,12 @@ def sync_club(slug: str, client: ChessComClient) -> None:
     """
     from app import db_service
 
-    existing_game_sync = (
-        sync_status["clubs"]
-        .get(slug, {})
-        .get("game_sync", _default_game_sync())
-    )
+    with _sync_lock:
+        existing_game_sync = (
+            sync_status["clubs"]
+            .get(slug, {})
+            .get("game_sync", _default_game_sync())
+        )
     status = {
         "ok": True,
         "error": None,
@@ -130,7 +149,8 @@ def sync_club(slug: str, client: ChessComClient) -> None:
         "steps": {},
         "game_sync": existing_game_sync,
     }
-    sync_status["clubs"][slug] = status
+    with _sync_lock:
+        sync_status["clubs"][slug] = status
 
     year = datetime.now(UTC).year
     club_svc = ClubService(client)
@@ -175,7 +195,7 @@ def sync_club(slug: str, client: ChessComClient) -> None:
             elif name == "tournaments" and result:
                 db_service.upsert_tournaments(result)
                 tournaments_data = result
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             status["steps"][name] = str(exc)
             status["ok"] = False
             status["error"] = str(exc)
@@ -190,13 +210,14 @@ def sync_club(slug: str, client: ChessComClient) -> None:
                     db_service.upsert_results(results)
             status["steps"]["tournament_results"] = "ok"
             log.info("Synced %s/tournament_results", slug)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             status["steps"]["tournament_results"] = str(exc)
             status["ok"] = False
             status["error"] = str(exc)
             log.warning("Sync failed %s/tournament_results: %s", slug, exc)
 
-    status["synced_at"] = datetime.now(UTC)
+    with _sync_lock:
+        status["synced_at"] = datetime.now(UTC)
 
 
 def run_sync(app: Flask) -> None:
@@ -217,12 +238,14 @@ def run_sync(app: Flask) -> None:
             log.warning("Server credentials not configured, skipping sync.")
             return
 
-        sync_status["running"] = True
+        with _sync_lock:
+            sync_status["running"] = True
         log.info("Starting sync for %d club(s)...", len(clubs))
         for slug in clubs:
             sync_club(slug, client)
-        sync_status["last_run"] = datetime.now(UTC)
-        sync_status["running"] = False
+        with _sync_lock:
+            sync_status["last_run"] = datetime.now(UTC)
+            sync_status["running"] = False
         log.info("Sync complete.")
 
 
@@ -235,8 +258,9 @@ def trigger_sync_async(app: Flask) -> bool:
     Returns:
         ``True`` if started, ``False`` if already running.
     """
-    if sync_status["running"]:
-        return False
+    with _sync_lock:
+        if sync_status["running"]:
+            return False
     thread = threading.Thread(target=run_sync, args=[app], daemon=True)
     thread.start()
     return True
@@ -273,15 +297,16 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
     pending = [t for t in finished if not db_service.has_games(t.id)]
     skipped = len(finished) - len(pending)
 
-    club_status = sync_status["clubs"].get(slug, {})
-    game_sync = club_status.get("game_sync", _default_game_sync())
-    club_status["game_sync"] = game_sync
+    with _sync_lock:
+        club_status = sync_status["clubs"].get(slug, {})
+        game_sync = club_status.get("game_sync", _default_game_sync())
+        club_status["game_sync"] = game_sync
 
-    game_sync["running"] = True
-    game_sync["total"] = len(pending)
-    game_sync["done"] = 0
-    game_sync["errors"] = []
-    game_sync["completed_at"] = None
+        game_sync["running"] = True
+        game_sync["total"] = len(pending)
+        game_sync["done"] = 0
+        game_sync["errors"] = []
+        game_sync["completed_at"] = None
 
     if skipped:
         log.info(
@@ -292,7 +317,8 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
         )
 
     for t in pending:
-        game_sync["current"] = t.name
+        with _sync_lock:
+            game_sync["current"] = t.name
         try:
             games = client.get_tournament_games(t)
             if games:
@@ -304,15 +330,17 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
                 game_sync["done"] + 1,
                 game_sync["total"],
             )
-        except Exception as exc:  # noqa: BLE001
-            game_sync["errors"].append(f"{t.name}: {exc}")
+        except Exception as exc:
+            with _sync_lock:
+                game_sync["errors"].append(f"{t.name}: {exc}")
             log.warning(
                 "Game sync failed %s/%s: %s",
                 slug,
                 t.name,
                 exc,
             )
-        game_sync["done"] += 1
+        with _sync_lock:
+            game_sync["done"] += 1
 
     # Recompute records if new games were fetched
     if pending:
@@ -321,16 +349,17 @@ def sync_club_games(slug: str, client: ChessComClient) -> None:
             if records:
                 db_service.store_records(slug, records)
             log.info("Stored records for %s.", slug)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning(
                 "Failed to compute records for %s: %s",
                 slug,
                 exc,
             )
 
-    game_sync["running"] = False
-    game_sync["current"] = None
-    game_sync["completed_at"] = datetime.now(UTC)
+    with _sync_lock:
+        game_sync["running"] = False
+        game_sync["current"] = None
+        game_sync["completed_at"] = datetime.now(UTC)
     log.info("Game sync complete for %s.", slug)
 
 
@@ -359,10 +388,11 @@ def trigger_game_sync_async(app: Flask, slug: str) -> bool:
     Returns:
         ``True`` if started, ``False`` if already running.
     """
-    club_status = sync_status["clubs"].get(slug, {})
-    game_sync = club_status.get("game_sync", {})
-    if game_sync.get("running"):
-        return False
+    with _sync_lock:
+        club_status = sync_status["clubs"].get(slug, {})
+        game_sync = club_status.get("game_sync", {})
+        if game_sync.get("running"):
+            return False
     thread = threading.Thread(
         target=_run_game_sync,
         args=[app, slug],
@@ -383,7 +413,7 @@ def init_scheduler(app: Flask) -> None:
     Args:
         app: The Flask application instance.
     """
-    global _scheduler  # noqa: PLW0603
+    global _scheduler
     if _scheduler is not None:
         return
 
