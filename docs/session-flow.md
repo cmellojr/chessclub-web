@@ -165,15 +165,15 @@ flowchart TD
 |-----|----------|-------|
 | Flask session cookie | Configurable (`PERMANENT_SESSION_LIFETIME`, default 31 days) | Uses `SESSION_COOKIE_HTTPONLY` and `SESSION_COOKIE_SAMESITE` defaults. |
 | `oauth_token` | Depends on Chess.com's `expires_in` (typically 1 hour) | No refresh token flow implemented — user re-logs in when expired. |
-| `admin_authenticated` | Until session cookie expires or user logs out | No timeout. Log out explicitly via `/admin/logout`. |
+| `admin_authenticated` | 30 minutes of inactivity (configurable via `ADMIN_SESSION_TIMEOUT_MINUTES`) | Cleared automatically on timeout; log out explicitly via `/admin/logout`. |
 | `chess_username` | Same as `oauth_token` | Cleared on logout alongside the token. |
 
 **Security notes:**
 
 - OAuth tokens are stored in the signed cookie, never on the server
   filesystem.
-- The admin check relies solely on the session flag — there is no
-  CSRF protection on admin POST routes.
+- The admin check relies on the session flag plus CSRF token validation
+  on all admin POST routes via the `_csrf_required` decorator.
 - The `oauth_code_verifier` is a single-use 64-byte URL-safe token
   (`secrets.token_urlsafe(64)`).
 - Server cookie credentials (`ACCESS_TOKEN`, `PHPSESSID`) are never

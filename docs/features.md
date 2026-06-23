@@ -34,9 +34,10 @@ Displays all club members with usernames, titles, ratings, activity status, and 
 
 **Flow:**
 
-1. `app/club.py:members()` — Route handler (`GET /club/<slug>/members`). DB-first: `db_service.get_members(slug)`. Falls back to `ClubService(client).get_club_members(slug)`.
-2. `app/db_service.py:get_members()` — Queries `MemberModel` by club_id, returns `list[Member]` or `None`.
-3. `app/templates/club/members.html` — Table with member details; title badges, activity badges, Chess.com profile links.
+1. `app/club.py:members()` — Route handler (`GET /club/<slug>/members`). Accepts optional `?page=` and `?per_page=` params for pagination. DB-first: `db_service.get_members(slug, offset, limit)`. Falls back to `ClubService(client).get_club_members(slug)`.
+2. `app/db_service.py:get_members()` — Queries `MemberModel` by club_id with offset/limit, returns `list[Member]` or `None`.
+3. `app/db_service.py:count_members()` — Counts total members for pagination metadata.
+4. `app/templates/club/members.html` — Table with member details; title badges, activity badges, Chess.com profile links.
 
 ---
 
@@ -46,9 +47,10 @@ Lists all club tournaments with format, status, player count, winner, and dates.
 
 **Flow:**
 
-1. `app/club.py:tournaments()` — Route handler (`GET /club/<slug>/tournaments`). DB-first: `db_service.get_tournaments(slug)`. Falls back to `ClubService(client).get_club_tournaments(slug)`. Requires auth for library path.
-2. `app/db_service.py:get_tournaments()` — Queries `TournamentModel` by club_slug, ordered by end_date DESC, returns `list[Tournament]` or `None`.
-3. `app/templates/club/tournaments.html` — Table with format badges (Arena/Swiss), status badges, external Chess.com links.
+1. `app/club.py:tournaments()` — Route handler (`GET /club/<slug>/tournaments`). Accepts optional `?page=` and `?per_page=` params for pagination. DB-first: `db_service.get_tournaments(slug, offset, limit)`. Falls back to `ClubService(client).get_club_tournaments(slug)`. Requires auth for library path.
+2. `app/db_service.py:get_tournaments()` — Queries `TournamentModel` by club_slug, ordered by end_date DESC with offset/limit, returns `list[Tournament]` or `None`.
+3. `app/db_service.py:count_tournaments()` — Counts total tournaments for pagination metadata.
+4. `app/templates/club/tournaments.html` — Table with format badges (Arena/Swiss), status badges, external Chess.com links.
 
 ---
 
@@ -58,8 +60,8 @@ Player rankings computed from tournament results, filterable by year and month.
 
 **Flow:**
 
-1. `app/club.py:leaderboard()` — Route handler (`GET /club/<slug>/leaderboard`). Accepts `?year=` and `?month=` params. DB-first: `db_service.get_leaderboard(slug, year, month)`. Falls back to `LeaderboardService(client).get_leaderboard(slug, year, month)`.
-2. `app/db_service.py:get_leaderboard()` — Computed aggregate: GROUP BY player across `TournamentResultModel` joined with `TournamentModel`, filtered by club_slug, status=finished, optional date range. Returns `list[PlayerStats]` sorted by total_score DESC.
+1. `app/club.py:leaderboard()` — Route handler (`GET /club/<slug>/leaderboard`). Accepts optional `?year=`, `?month=`, `?page=`, and `?per_page=` params. DB-first: `db_service.get_leaderboard(slug, year, month, offset, limit)`. Falls back to `LeaderboardService(client).get_leaderboard(slug, year, month)`.
+2. `app/db_service.py:get_leaderboard()` — Computed aggregate: GROUP BY player across `TournamentResultModel` joined with `TournamentModel`, filtered by club_slug, status=finished, optional date range. Returns `(list[PlayerStats], total_count)` sorted by total_score DESC, with offset/limit pagination.
 3. `app/templates/club/leaderboard.html` — Table with rank (medal emojis for top 3), player links, stats; filter form with year input and month dropdown.
 
 ---

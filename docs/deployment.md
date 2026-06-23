@@ -82,6 +82,20 @@ changes via volume mounts (implicit in the base Compose file).
 
 ### Production
 
+The dev override (`docker-compose.override.yml`) auto-loads with
+`docker compose up`, so a separate prod override is needed:
+
+```yaml
+# docker-compose.prod.yml
+services:
+  web:
+    build:
+      target: prod
+    environment:
+      - FLASK_DEBUG=0
+    restart: unless-stopped
+```
+
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
@@ -100,7 +114,8 @@ The production override:
 
 The `docker-compose.yml` defines a named volume `db-data` mapped to
 `/app/instance`. The watched clubs file is bind-mounted to allow editing
-without rebuilding.
+without rebuilding. Note that `docker-compose.override.yml` auto-targets
+the `dev` stage; for production, use a prod override file (see above).
 
 ### Multi-Stage Build Reference
 
