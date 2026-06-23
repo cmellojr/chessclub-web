@@ -229,9 +229,11 @@ Separated into **write** and **read** functions:
 | Function | Returns | Source |
 |----------|---------|--------|
 | `get_club()` | `Club` | Direct query |
-| `get_members()` | `list[Member]` | Direct query |
-| `get_tournaments()` | `list[Tournament]` | Direct query, ordered by end_date DESC |
-| `get_leaderboard()` | `list[PlayerStats]` | **Computed** from results + tournaments (GROUP BY player) |
+| `get_members()` | `list[Member]` | Direct query, offset/limit pagination |
+| `count_members()` | `int` | Count query for pagination metadata |
+| `get_tournaments()` | `list[Tournament]` | Direct query, ordered by end_date DESC, offset/limit pagination |
+| `count_tournaments()` | `int` | Count query for pagination metadata |
+| `get_leaderboard()` | `(list[PlayerStats], int)` | **Computed** from results + tournaments (GROUP BY player), with offset/limit pagination |
 | `get_matchups()` | `list[Matchup]` | **Computed** from games + tournaments (GROUP BY player pair) |
 | `get_attendance()` | `list[AttendanceRecord]` | **Computed** from results + tournaments (streaks + participation %) |
 | `get_records()` | `list[ClubRecord]` | Direct query |
