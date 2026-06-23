@@ -22,11 +22,13 @@ from chessclub.core.exceptions import AuthenticationRequiredError
 from chessclub.providers.chesscom import ChessComClient, ChessComCookieAuth
 from flask import current_app
 
+from app.auth import refresh_oauth_token
+
 
 class _SessionOAuthProvider(AuthProvider):
     """AuthProvider backed by an OAuth token stored in a Flask session dict."""
 
-    def __init__(self, token_data: dict):
+    def __init__(self, token_data: dict) -> None:
         self._token = token_data
 
     def get_credentials(self) -> AuthCredentials:
@@ -64,6 +66,9 @@ def make_client(session_data: dict) -> ChessComClient:
     server_sessid = current_app.config.get("CHESSCOM_SERVER_PHPSESSID", "")
 
     token_data = session_data.get("oauth_token")
+    if token_data:
+        refresh_oauth_token(session_data)
+        token_data = session_data.get("oauth_token")
     oauth_provider = _SessionOAuthProvider(token_data) if token_data else None
 
     if server_token and server_sessid:

@@ -225,17 +225,28 @@ def get_club(slug: str) -> Club | None:
     )
 
 
-def get_members(slug: str) -> list[Member] | None:
+def get_members(
+    slug: str,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[Member] | None:
     """Load club members from the database.
 
     Args:
         slug: The club slug.
+        offset: Number of rows to skip (for pagination).
+        limit: Maximum number of rows to return (for pagination).
 
     Returns:
         A list of Member dataclasses, or None if the club has
         no members stored.
     """
-    rows = MemberModel.query.filter_by(club_id=slug).all()
+    query = MemberModel.query.filter_by(club_id=slug)
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    rows = query.all()
     if not rows:
         return None
     return [
@@ -250,20 +261,54 @@ def get_members(slug: str) -> list[Member] | None:
     ]
 
 
-def get_tournaments(slug: str) -> list[Tournament] | None:
-    """Load club tournaments from the database.
+def count_members(slug: str) -> int:
+    """Count total members for a club.
 
     Args:
         slug: The club slug.
 
     Returns:
+        Total number of members stored for the club.
+    """
+    return MemberModel.query.filter_by(club_id=slug).count()
+
+
+def count_tournaments(slug: str) -> int:
+    """Count total tournaments for a club.
+
+    Args:
+        slug: The club slug.
+
+    Returns:
+        Total number of tournaments stored for the club.
+    """
+    return TournamentModel.query.filter_by(club_slug=slug).count()
+
+
+def get_tournaments(
+    slug: str,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[Tournament] | None:
+    """Load club tournaments from the database.
+
+    Args:
+        slug: The club slug.
+        offset: Number of rows to skip (for pagination).
+        limit: Maximum number of rows to return (for pagination).
+
+    Returns:
         A list of Tournament dataclasses, or None if none stored.
     """
-    rows = (
+    query = (
         TournamentModel.query.filter_by(club_slug=slug)
         .order_by(TournamentModel.end_date.desc())
-        .all()
     )
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    rows = query.all()
     if not rows:
         return None
     return [
@@ -288,7 +333,9 @@ def get_leaderboard(
     slug: str,
     year: int | None = None,
     month: int | None = None,
-) -> list[PlayerStats] | None:
+    offset: int | None = None,
+    limit: int | None = None,
+) -> tuple[list[PlayerStats] | None, int]:
     """Compute leaderboard from stored tournament results.
 
     Groups results by player, filtering by tournaments that belong
@@ -298,10 +345,12 @@ def get_leaderboard(
         slug: The club slug.
         year: Optional year filter.
         month: Optional month filter.
+        offset: Number of players to skip (for pagination).
+        limit: Maximum number of players to return (for pagination).
 
     Returns:
-        A list of PlayerStats sorted by total_score descending,
-        or None if no results are stored.
+        A tuple of (list of PlayerStats sorted by total_score descending,
+        total count before pagination), or (None, 0) if no results.
     """
     query = (
         db.session.query(TournamentResultModel)
@@ -332,7 +381,7 @@ def get_leaderboard(
 
     results = query.all()
     if not results:
-        return None
+        return (None, 0)
 
     # Group by player
     player_data: dict[str, list[TournamentResultModel]] = defaultdict(list)
@@ -358,7 +407,10 @@ def get_leaderboard(
         )
 
     stats.sort(key=lambda s: s.total_score, reverse=True)
-    return stats
+    total = len(stats)
+    if offset is not None and limit is not None:
+        stats = stats[offset : offset + limit]
+    return (stats, total)
 
 
 def get_matchups(slug: str, last_n: int | None = None) -> list[Matchup] | None:

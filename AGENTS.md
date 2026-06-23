@@ -5,15 +5,6 @@ Repository instructions for coding agents working on `chessclub-web`.
 Keep this file short and operational. Put durable project documentation in the
 files referenced below, then link to it from here instead of duplicating it.
 
-## Authority
-
-- This root `AGENTS.md` applies to the whole repository.
-- Read `.agents/README.md` before using the local multi-agent orchestration
-  kit. If `.agents/AGENTS.md` exists and conflicts with this file, this root
-  `AGENTS.md` wins for this repository.
-- User instructions in the current chat still override repository guidance.
-- Treat `.agents/` as local agent state; it is intentionally ignored by Git.
-
 ## Read First
 
 - Project overview and quick start: `README.md`.

@@ -238,18 +238,31 @@ flowchart TD
 
 ---
 
-## Unhandled Errors
+## Error Handlers
 
-Errors that propagate to the top level are caught by Flask's default error
-handling, which returns an HTML 500 page in production or a traceback in
-debug mode. No custom error handlers (`@app.errorhandler(500)`) are
-registered.
+Three custom error handlers are registered in the application factory:
 
-Known gaps:
+| Handler | Route Matches | Behaviour |
+|---------|---------------|-----------|
+| `404`   | Any unmatched route | Renders `errors/404.html` with a user-friendly message. |
+| `403`   | Forbidden access   | Renders `errors/403.html`. |
+| `500`   | Internal errors    | Renders `errors/500.html` without leaking traceback or internals. |
+
+## Health Endpoint
+
+`GET /health` returns a JSON payload with application status and sync
+information:
+
+```json
+{"status": "ok", "timestamp": "2026-06-10T12:00:00+00:00", "sync": {"last_run": null, "running": false}}
+```
+
+The endpoint requires no authentication and is suitable for load balancer
+or Docker health checks.
+
+## Known Gaps
 
 | Gap | Risk | Mitigation |
 |-----|------|------------|
-| Broad `except Exception` in routes | Masks unexpected errors | Add specific exception types as the codebase matures. |
-| No CSRF validation on admin POST routes | Cross-site request forgery | Admin panel is password-gated. Add CSRF token for defense-in-depth. |
 | No input sanitization on club slug | Path traversal in rare edge cases | Slug is used in DB queries and URL construction, not filesystem. |
 | Sync errors only visible on admin dashboard | User has no visibility into sync failures | Check admin dashboard periodically. |

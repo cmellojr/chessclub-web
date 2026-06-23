@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: chessclub-web-1
     build:
       context: .
     ports:

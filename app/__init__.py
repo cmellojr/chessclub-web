@@ -1,8 +1,18 @@
 """Flask application factory."""
 
 import datetime
+import time
 
-from flask import Flask
+from flask import (
+    Flask,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from config import Config
 
@@ -65,7 +75,7 @@ def create_app() -> Flask:
     @app.context_processor
     def inject_auth_status() -> dict:
         """Inject auth flags and sync status into all templates."""
-        from app.sync import sync_status
+        from app.sync import get_sync_status
 
         token = app.config.get("CHESSCOM_SERVER_ACCESS_TOKEN", "")
         sessid = app.config.get("CHESSCOM_SERVER_PHPSESSID", "")
@@ -73,8 +83,30 @@ def create_app() -> Flask:
         return {
             "server_auth_configured": bool(token and sessid),
             "oauth_configured": bool(client_id),
-            "sync_status": sync_status,
+            "sync_status": get_sync_status(),
         }
+
+    # ---------- Admin session timeout ----------
+
+    @app.before_request
+    def check_admin_session_timeout() -> Response | None:
+        """Clear admin_authenticated after inactivity."""
+        if not session.get("admin_authenticated"):
+            return
+        last_active = session.get("admin_last_active")
+        timeout = app.config.get(
+            "ADMIN_SESSION_TIMEOUT_MINUTES", 30
+        )
+        if last_active is not None and (
+            time.time() - last_active > timeout * 60
+        ):
+            session.pop("admin_authenticated", None)
+            session.pop("admin_last_active", None)
+            if request.path.startswith("/admin"):
+                flash("Session expired due to inactivity.", "info")
+                return redirect(url_for("admin.login"))
+        else:
+            session["admin_last_active"] = time.time()
 
     # ---------- Blueprints ----------
     from app.admin import admin_bp
@@ -86,6 +118,61 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(club_bp)
     app.register_blueprint(player_bp)
+
+    # ---------- Error handlers ----------
+
+    @app.errorhandler(404)
+    def not_found(error: int | Exception) -> tuple[str, int]:
+        """Render a custom 404 page.
+
+        Returns:
+            A tuple with the rendered template and HTTP status.
+        """
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def server_error(error: int | Exception) -> tuple[str, int]:
+        """Render a custom 500 page.
+
+        Returns:
+            A tuple with the rendered template and HTTP status.
+        """
+        return render_template("errors/500.html"), 500
+
+    @app.errorhandler(403)
+    def forbidden(error: int | Exception) -> tuple[str, int]:
+        """Render a custom 403 page.
+
+        Returns:
+            A tuple with the rendered template and HTTP status.
+        """
+        return render_template("errors/403.html"), 403
+
+    # ---------- Health check ----------
+
+    @app.route("/health")
+    def health() -> dict:
+        """Return JSON health status with sync information.
+
+        Returns:
+            A dict with status, timestamp, and sync info.
+        """
+        from app.sync import get_sync_status
+
+        status = get_sync_status()
+        sync_info = {
+            "last_run": (
+                status["last_run"].isoformat()
+                if status["last_run"]
+                else None
+            ),
+            "running": status["running"],
+        }
+        return {
+            "status": "ok",
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+            "sync": sync_info,
+        }
 
     # ---------- Background sync scheduler ----------
     # Skip scheduler in the Flask reloader child process to avoid

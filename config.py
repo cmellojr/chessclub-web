@@ -15,6 +15,9 @@ class Config:
 
     # Chess.com OAuth PKCE (register your app at Chess.com Developer Community)
     CHESSCOM_OAUTH_CLIENT_ID = os.environ.get("CHESSCOM_OAUTH_CLIENT_ID", "")
+    CHESSCOM_OAUTH_CLIENT_SECRET = os.environ.get(
+        "CHESSCOM_OAUTH_CLIENT_SECRET", ""
+    )
     OAUTH_REDIRECT_URI = os.environ.get(
         "OAUTH_REDIRECT_URI", "http://localhost:5000/auth/callback"
     )
@@ -36,6 +39,7 @@ class Config:
         "WATCHED_CLUBS_FILE", "watched_clubs.json"
     )
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+    ADMIN_SESSION_TIMEOUT_MINUTES = 30
 
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get(
