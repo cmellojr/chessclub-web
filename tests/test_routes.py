@@ -281,7 +281,7 @@ class TestErrorHandlers:
 
     def test_404_custom_page(self, client):
         """Nonexistent route returns custom 404 template."""
-        response = client.get("/pagina-inexistente")
+        response = client.get("/nonexistent-page")
         assert response.status_code == 404
         assert b"Page not found" in response.data
 
