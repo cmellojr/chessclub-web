@@ -14,7 +14,7 @@ logging.basicConfig(
 def main() -> None:
     """Run the Flask development server."""
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
 
 
 if __name__ == "__main__":
