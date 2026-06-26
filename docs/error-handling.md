@@ -266,5 +266,5 @@ or Docker health checks.
 
 | Gap | Risk | Mitigation |
 |-----|------|------------|
-| No input sanitization on club slug | Path traversal in rare edge cases | Slug is validated via route converter and used only in DB queries/URLs — not a filesystem path traversal risk. |
+| No input sanitization on club slug | Path traversal in rare edge cases | Slugs from URL path params (`/club/<slug>`) are validated by Flask's string converter (rejects `/`). Slugs from `request.args` and `request.form` (`club/find`, admin add/remove) receive **no** routing-layer validation. All slug values are used in DB queries/URLs, not filesystem operations. |
 | Sync errors only visible on admin dashboard | User has no visibility into sync failures | Check admin dashboard periodically. |
