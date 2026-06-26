@@ -51,6 +51,17 @@ Thank you for your interest in contributing to **chessclub-web**!
 - **Linter/formatter:** Ruff — see `pyproject.toml` for rule configuration.
 - **Frontend:** Bootstrap 5.3 via CDN + Jinja2 templates. No build steps or JS frameworks.
 
+## Testing
+
+- **Framework:** pytest
+- **Test location:** `tests/` directory (mirrors `app/` structure)
+- **Running tests:**
+  - `pytest` — run all tests
+  - `pytest -v` — verbose output
+  - `pytest tests/test_specific.py` — run a single test file
+- **Coverage:** `pytest --cov=app` — shows coverage for `app/` package
+- **Current status:** 52 tests passing, ruff clean
+
 ## Branching Model
 
 - `main` — stable releases, merged from `develop` with `--no-ff`.

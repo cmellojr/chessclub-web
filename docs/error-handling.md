@@ -3,6 +3,8 @@
 This document describes the error-handling strategy used across
 chessclub-web: how different layers catch, transform, and surface errors.
 
+*Updated: 2026-06-26*
+
 ---
 
 ## Error Classification
@@ -264,5 +266,5 @@ or Docker health checks.
 
 | Gap | Risk | Mitigation |
 |-----|------|------------|
-| No input sanitization on club slug | Path traversal in rare edge cases | Slug is used in DB queries and URL construction, not filesystem. |
+| No input sanitization on club slug | Path traversal in rare edge cases | Slug is validated via route converter and used only in DB queries/URLs — not a filesystem path traversal risk. |
 | Sync errors only visible on admin dashboard | User has no visibility into sync failures | Check admin dashboard periodically. |
