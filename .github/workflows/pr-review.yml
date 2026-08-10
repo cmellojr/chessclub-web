@@ -1,0 +1,322 @@
+name: Jules PR Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+
+concurrency:
+  group: jules-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: |
+      github.event_name == 'workflow_dispatch' || (
+        !contains(github.event.pull_request.head.ref, 'jules-') &&
+        !contains(github.actor, 'jules')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+      statuses: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 1
+
+      - name: Resolve PR number and head SHA
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR_NUM="${{ inputs.pr_number }}"
+          else
+            PR_NUM="${{ github.event.pull_request.number }}"
+          fi
+          HEAD_SHA=$(gh pr view "$PR_NUM" --json headRefOid --jq '.headRefOid')
+          echo "number=$PR_NUM" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set pending status
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.head_sha }}" \
+            -f state=pending -f context=jules/review \
+            -f description='Jules is reviewing this PR…'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post in-progress comment
+        id: comment
+        run: |
+          set +e
+          # Use gh api to create the comment which returns JSON; capture full output for diagnostics
+          RESPONSE=$(gh api -X POST "repos/${{ github.repository }}/issues/${{ steps.pr.outputs.number }}/comments" \
+            -f body="🤖 **Jules is reviewing this PR.** Results will appear here shortly (typically 1-5 minutes)." 2>&1)
+          RC=$?
+          set -e
+
+          if [ $RC -ne 0 ]; then
+            echo "Warning: gh api failed to create comment (exit $RC). gh output:"
+            echo "$RESPONSE"
+            # Provide an empty output so later steps that expect an id do not fail the job unexpectedly
+            echo "id=" >> $GITHUB_OUTPUT
+          else
+            # Parse id safely; if parsing fails, emit diagnostics instead of letting jq exit the step
+            COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id' 2>/dev/null || true)
+            if [ -z "$COMMENT_ID" ] || [ "$COMMENT_ID" = "null" ]; then
+              echo "Warning: could not parse comment id from gh response:"
+              echo "$RESPONSE"
+              echo "id=" >> $GITHUB_OUTPUT
+            else
+              echo "id=$COMMENT_ID" >> $GITHUB_OUTPUT
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR diff
+        run: |
+          gh pr diff "${{ steps.pr.outputs.number }}" > pr.diff
+          DIFF_SIZE=$(wc -c < pr.diff)
+          echo "Diff size: $DIFF_SIZE bytes"
+          if [ "$DIFF_SIZE" -gt 80000 ]; then
+            echo "Truncating diff from $DIFF_SIZE to 80000 bytes"
+            head -c 80000 pr.diff > pr.diff.truncated
+            mv pr.diff.truncated pr.diff
+            echo "Diff was truncated to 80000 bytes — review may be incomplete." > truncated_note.txt
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build prompt
+        run: |
+          set -e
+          RULES=""
+          if [ -f .github/jules-review-rules.md ]; then
+            RULES=$(cat .github/jules-review-rules.md)
+          fi
+          DIFF=$(cat pr.diff)
+          TRUNCATED_NOTE=$(cat truncated_note.txt 2>/dev/null || echo "")
+          PR_TITLE="$(gh pr view "${{ steps.pr.outputs.number }}" --json title --jq '.title' 2>/dev/null || echo '')"
+          PR_BODY="$(gh pr view "${{ steps.pr.outputs.number }}" --json body --jq '.body' 2>/dev/null || echo '')"
+
+          cat > prompt.txt <<EOF
+          You are an expert code reviewer. Review the pull request below.
+
+          # Repository
+          ${{ github.repository }}
+
+          # UNTRUSTED: PR title
+          $PR_TITLE
+
+          # UNTRUSTED: PR description
+          ${PR_BODY:-(no description)}
+
+          # PR ## ${{ steps.pr.outputs.number }}
+
+          EOF
+
+          if [ -n "$RULES" ]; then
+            cat >> prompt.txt <<EOF
+          # UNTRUSTED: Project-specific review rules
+          $RULES
+
+          EOF
+          fi
+
+          if [ -n "$TRUNCATED_NOTE" ]; then
+            cat >> prompt.txt <<EOF
+          NOTE: $TRUNCATED_NOTE
+
+          EOF
+          fi
+
+          cat >> prompt.txt <<EOF
+          # UNTRUSTED: Diff
+          ```diff
+          $DIFF
+          ```
+
+          # What to review
+          Focus ONLY on lines changed in this diff. Evaluate for:
+
+          - **Correctness**: logic errors, null/undefined handling, race conditions, off-by-ones, broken APIs, edge cases.
+          - **Security**: injection risks (SQL/command/XSS), hardcoded secrets, insecure crypto, auth/authz flaws, sensitive data in logs or URLs.
+          - **Reliability**: missing error handling where it matters, unhandled promise rejections, resource leaks.
+          - **Maintainability**: duplication, unclear naming, dead code, violated project rules above.
+
+          # What NOT to flag
+          Skip linter-catchable issues, pre-existing issues in unchanged lines, pedantic nitpicks, and hypothetical problems.
+
+          Tag each finding as [BLOCKING], [WARN], or [NIT].
+          End with EXACTLY one line: VERDICT: approve | VERDICT: comment | VERDICT: block
+          EOF
+
+          jq -n \
+            --arg prompt "$(cat prompt.txt)" \
+            --arg source "sources/github/${{ github.repository }}" \
+            '{
+              prompt: $prompt,
+              title: ("Review PR #" + env.PR_NUM),
+              sourceContext: {
+                source: $source,
+                githubRepoContext: { startingBranch: "develop" }
+              }
+            }' > jules_payload.json
+        env:
+          PR_NUM: ${{ steps.pr.outputs.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Invoke Jules API
+        id: jules
+        run: |
+          set +e
+          RESPONSE=$(curl -s -X POST "https://jules.googleapis.com/v1alpha/sessions" \
+            -H "Content-Type: application/json" \
+            -H "x-goog-api-key: ${{ secrets.JULES_API_KEY }}" \
+            -d @jules_payload.json 2>&1)
+          RC=$?
+          set -e
+
+          if [ $RC -ne 0 ]; then
+            echo "Warning: curl failed to create Jules session (exit $RC). Response:"
+            echo "$RESPONSE"
+            echo "id=" >> $GITHUB_OUTPUT
+          else
+            SESSION_ID=$(echo "$RESPONSE" | jq -r '.id' 2>/dev/null || true)
+            SESSION_NAME=$(echo "$RESPONSE" | jq -r '.name' 2>/dev/null || true)
+            if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
+              echo "Warning: could not parse session id from response:"
+              echo "$RESPONSE"
+              echo "id=" >> $GITHUB_OUTPUT
+            else
+              echo "Session created: $SESSION_NAME (id: $SESSION_ID)"
+              echo "id=$SESSION_ID" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Poll for review completion
+        id: poll
+        run: |
+          SESSION_ID="${{ steps.jules.outputs.id }}"
+          if [ -z "$SESSION_ID" ]; then
+            echo "No session ID available from Jules; skipping poll."
+            echo "review=Jules did not return a review within the timeout." >> $GITHUB_OUTPUT
+            echo "verdict=error" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          DEADLINE=$(( $(date +%s) + 900 ))
+          REVIEW=""
+          POLL_INTERVAL=20
+          while [ $(date +%s) -lt $DEADLINE ]; do
+            # Fetch session state safely
+            STATE_RESP=$(curl -s -H "x-goog-api-key: ${{ secrets.JULES_API_KEY }}" \
+              "https://jules.googleapis.com/v1alpha/sessions/$SESSION_ID" 2>&1)
+            STATE=$(echo "$STATE_RESP" | jq -r '.state' 2>/dev/null || true)
+            if [ -z "$STATE" ]; then
+              echo "Warning: failed to parse session state from response:"
+              echo "$STATE_RESP"
+              sleep $POLL_INTERVAL
+              continue
+            fi
+
+            echo "Session state: $STATE"
+            case "$STATE" in
+              COMPLETED)
+                ACTIVITIES_RESP=$(curl -s -H "x-goog-api-key: ${{ secrets.JULES_API_KEY }}" \
+                  "https://jules.googleapis.com/v1alpha/sessions/$SESSION_ID/activities?pageSize=50" 2>&1)
+                REVIEW=$(echo "$ACTIVITIES_RESP" | jq -r '[.activities[] | select(.agentMessaged != null) | .agentMessaged.agentMessage] | last' 2>/dev/null || true)
+                if [ -n "$REVIEW" ] && [ "$REVIEW" != "null" ]; then
+                  echo "Review obtained (${#REVIEW} chars)"
+                  echo "review<<JULES_EOF" >> $GITHUB_OUTPUT
+                  echo "$REVIEW" >> $GITHUB_OUTPUT
+                  echo "JULES_EOF" >> $GITHUB_OUTPUT
+                  VERDICT=$(echo "$REVIEW" | grep -oP 'VERDICT:\s*\K(approve|comment|block)' | tail -1)
+                  echo "verdict=${VERDICT:-comment}" >> $GITHUB_OUTPUT
+                  break
+                else
+                  echo "Warning: Session is COMPLETED but no agentMessaged could be extracted from activities."
+                  echo "Activities Response:"
+                  echo "$ACTIVITIES_RESP"
+                  echo "review=Jules session completed but review output was missing." >> $GITHUB_OUTPUT
+                  echo "verdict=error" >> $GITHUB_OUTPUT
+                  break
+                fi
+                ;;
+              FAILED)
+                REASON_RESP=$(curl -s -H "x-goog-api-key: ${{ secrets.JULES_API_KEY }}" \
+                  "https://jules.googleapis.com/v1alpha/sessions/$SESSION_ID" 2>&1)
+                REASON=$(echo "$REASON_RESP" | jq -r '.stateReason // "Unknown"' 2>/dev/null || true)
+                echo "Session failed: $REASON"
+                echo "review=Session failed: $REASON" >> $GITHUB_OUTPUT
+                echo "verdict=error" >> $GITHUB_OUTPUT
+                break
+                ;;
+              AWAITING_PLAN_APPROVAL|AWAITING_USER_FEEDBACK)
+                echo "Session needs input — approving plan"
+                curl -s -X POST \
+                  -H "x-goog-api-key: ${{ secrets.JULES_API_KEY }}" \
+                  -H "Content-Type: application/json" \
+                  -d '{}' \
+                  "https://jules.googleapis.com/v1alpha/sessions/$SESSION_ID:approvePlan" > /dev/null || true
+                POLL_INTERVAL=20
+                ;;
+            esac
+            sleep $POLL_INTERVAL
+          done
+          if [ -z "$REVIEW" ] || [ "$REVIEW" = "null" ]; then
+            echo "review=Jules did not return a review within the timeout." >> $GITHUB_OUTPUT
+            echo "verdict=timeout" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update PR comment with review
+        run: |
+          REVIEW="${{ steps.poll.outputs.review }}"
+          if [ -n "$REVIEW" ]; then
+            BODY="## 🤖 Jules Review\n\n${REVIEW}"
+            gh api "repos/${{ github.repository }}/issues/comments/${{ steps.comment.outputs.id }}" \
+              -X PATCH \
+              -f body="$BODY" > /dev/null
+          else
+            gh api "repos/${{ github.repository }}/issues/comments/${{ steps.comment.outputs.id }}" \
+              -X PATCH \
+              -f body="⚠️ **Jules review failed to complete.**" > /dev/null
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set commit status
+        run: |
+          VERDICT="${{ steps.poll.outputs.verdict }}"
+          case "$VERDICT" in
+            approve|comment)
+              STATE=success
+              DESC="Review complete (verdict: $VERDICT)"
+              ;;
+            block)
+              STATE=failure
+              DESC="Blocking issues found"
+              ;;
+            *)
+              STATE=failure
+              DESC="Review failed ($VERDICT)"
+              ;;
+          esac
+          gh api "repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.head_sha }}" \
+            -f state=$STATE -f context=jules/review \
+            -f description="$DESC"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
