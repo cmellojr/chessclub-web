@@ -42,6 +42,9 @@ class Config:
     ADMIN_SESSION_TIMEOUT_MINUTES = 30
 
     # Database
+    # Note: relative path "sqlite:///chessclub.db" resolves to <package>/instance/chessclub.db
+    # (i.e. app/instance/chessclub.db). For Docker deployments, set DATABASE_URI to
+    # an absolute path inside the mounted volume (e.g. sqlite:////app/instance/chessclub.db).
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URI", "sqlite:///chessclub.db"
     )
