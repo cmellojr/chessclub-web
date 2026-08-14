@@ -186,7 +186,7 @@ multiple workers will trigger duplicate sync jobs.
 | `ADMIN_PASSWORD` | Strong password (16+ characters). Rotate periodically. |
 | `CHESSCOM_SERVER_ACCESS_TOKEN` | Expires ~24h. Automate refresh or monitor the admin dashboard. |
 | `CHESSCOM_SERVER_PHPSESSID` | Expires ~14 days. Refresh alongside the access token. |
-| `DATABASE_URI` | For production, use a persistent path outside the container. |
+| `DATABASE_URI` | `sqlite:////app/instance/chessclub.db` (absolute path in container volume). |
 | `SYNC_INTERVAL_HOURS` | Keep at 6 or increase to 12. Frequent syncs increase API load. |
 | `OAUTH_REDIRECT_URI` | Must match the registered Chess.com OAuth app URI exactly. |
 
@@ -217,11 +217,11 @@ restricted-access file for production secrets. The `.dockerignore` excludes
 
 ## Health Checks
 
-The application exposes a built-in `GET /health` endpoint. For Docker
-health checks:
+The application exposes a built-in `GET /health` endpoint. In production setups,
+you can optionally configure a Docker health check in `docker-compose.yml`:
 
 ```yaml
-# docker-compose.yml snippet
+# Example docker-compose.yml healthcheck snippet
 healthcheck:
   test: ["CMD", "python", "-c", "import urllib.request; json.loads(urllib.request.urlopen('http://localhost:5000/health').read())['status'] == 'ok' or exit(1)"]
   interval: 30s

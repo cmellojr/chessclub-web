@@ -205,7 +205,11 @@ def sync_club(slug: str, client: ChessComClient) -> None:
     if tournaments_data:
         try:
             for t in tournaments_data:
-                results = club_svc.get_tournament_results(t)
+                results = club_svc.get_tournament_results(
+                    t.id,
+                    tournament_type=t.tournament_type,
+                    tournament_url=t.url,
+                )
                 if results:
                     db_service.upsert_results(results)
             status["steps"]["tournament_results"] = "ok"

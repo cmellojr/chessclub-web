@@ -14,6 +14,7 @@ from app import create_app
 def app(monkeypatch: pytest.MonkeyPatch) -> Generator[Flask, None, None]:
     """Create a Flask app configured for testing with an in-memory database."""
     monkeypatch.setattr("app.sync.init_scheduler", lambda app: None)
+    monkeypatch.setenv("DATABASE_URI", "sqlite:///:memory:")
     app = create_app()
     app.config.update({
         "TESTING": True,
