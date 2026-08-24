@@ -25,13 +25,13 @@ operational considerations.
 | Python | 3.11+ |
 | Disk | ~100 MB for the application + database |
 | Chess.com credentials | Server cookies (`ACCESS_TOKEN` + `PHPSESSID`) for sync |
-| (Optional) Docker | Docker Engine 24+ and Compose plugin |
+| Docker | Docker Engine 24+ and Compose plugin |
 
 ---
 
 ## Docker Deployment
 
-The project includes a Docker multi-stage build with three targets:
+The project uses a Docker multi-stage build with three targets:
 
 ```dockerfile
 # Stages defined in Dockerfile:
@@ -71,30 +71,52 @@ flowchart LR
     style External fill:#16213e,color:#fff
 ```
 
+### Compose Files
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `docker-compose.yml` | Base (prod target, healthcheck, volume) | Always — other files extend it |
+| `docker-compose.prod.yml` | Production hardening (resources, logging) | Deploying to a server |
+| `docker-compose.test.yml` | Isolated test environment (port 5001) | Testing on a Linux machine |
+| `docker-compose.dev.yml` | Development overrides (hot reload, debug) | Local development |
+| `docker-compose.override.yml` | Deprecated (empty) — kept to prevent auto-load | — |
+
+### Quick Start (Clone + Docker Up)
+
+```bash
+git clone https://github.com/cmellojr/chessclub-web.git
+cd chessclub-web
+cp .env.example .env
+# Edit .env with your values (at minimum: SECRET_KEY)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Opens at `http://localhost:5000`.
+
+### Test Environment
+
+Run an isolated test instance on port 5001 with a separate database:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --build
+```
+
+- Port: `5001` (no conflict with other instances)
+- Volume: `test-db-data` (isolated from production)
+- Restart: `no` (manual control)
+- Access: `http://localhost:5001`
+
 ### Development
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-Opens at `http://localhost:5000`. The Flask dev server auto-reloads on file
-changes via volume mounts (implicit in the base Compose file).
+- Hot reload via volume mounts (`.:/app`)
+- Flask debug server with auto-reload
+- Port: `5000`
 
 ### Production
-
-The dev override (`docker-compose.override.yml`) auto-loads with
-`docker compose up`, so a separate prod override is needed:
-
-```yaml
-# docker-compose.prod.yml
-services:
-  web:
-    build:
-      target: prod
-    environment:
-      - FLASK_DEBUG=0
-    restart: unless-stopped
-```
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
@@ -103,19 +125,20 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 The production override:
 - Builds the `prod` stage (gunicorn instead of Flask dev server).
 - Sets `FLASK_DEBUG=0`.
+- Sets `DATABASE_URI` to absolute path inside `/app/instance/`.
 - Enables `restart: unless-stopped`.
+- Adds memory/CPU limits and log rotation.
 
 ### Persistent Data
 
 | Path | Container | Purpose |
 |------|-----------|---------|
-| `./instance/chessclub.db` | `/app/instance/chessclub.db` | SQLite database (volume: `db-data`) |
+| Named volume `db-data` | `/app/instance` | SQLite database |
 | `./watched_clubs.json` | `/app/watched_clubs.json` | Watched club slugs (bind mount) |
 
-The `docker-compose.yml` defines a named volume `db-data` mapped to
-`/app/instance`. The watched clubs file is bind-mounted to allow editing
-without rebuilding. Note that `docker-compose.override.yml` auto-targets
-the `dev` stage; for production, use a prod override file (see above).
+The base compose defines a named volume `db-data` mapped to `/app/instance`.
+The `DATABASE_URI` must point to `/app/instance/chessclub.db` (set in prod/test
+overrides) to ensure data persists across container recreations.
 
 ### Multi-Stage Build Reference
 
@@ -186,7 +209,7 @@ multiple workers will trigger duplicate sync jobs.
 | `ADMIN_PASSWORD` | Strong password (16+ characters). Rotate periodically. |
 | `CHESSCOM_SERVER_ACCESS_TOKEN` | Expires ~24h. Automate refresh or monitor the admin dashboard. |
 | `CHESSCOM_SERVER_PHPSESSID` | Expires ~14 days. Refresh alongside the access token. |
-| `DATABASE_URI` | For production, use a persistent path outside the container. |
+| `DATABASE_URI` | Must be `sqlite:////app/instance/chessclub.db` in Docker (absolute path). |
 | `SYNC_INTERVAL_HOURS` | Keep at 6 or increase to 12. Frequent syncs increase API load. |
 | `OAUTH_REDIRECT_URI` | Must match the registered Chess.com OAuth app URI exactly. |
 
@@ -211,24 +234,15 @@ server {
 
 **Never commit `.env` to version control.** Use a secrets manager or
 restricted-access file for production secrets. The `.dockerignore` excludes
-`.env` from the Docker build context.
+`.env` from the Docker build context. `.env.test` contains non-sensitive
+defaults and is safe to commit.
 
 ---
 
 ## Health Checks
 
-The application exposes a built-in `GET /health` endpoint. For Docker
-health checks:
-
-```yaml
-# docker-compose.yml snippet
-healthcheck:
-  test: ["CMD", "python", "-c", "import urllib.request; json.loads(urllib.request.urlopen('http://localhost:5000/health').read())['status'] == 'ok' or exit(1)"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  start_period: 10s
-```
+The application exposes a built-in `GET /health` endpoint. The base compose
+includes a health check that verifies the endpoint returns `{"status": "ok"}`.
 
 Monitor these signals externally:
 
@@ -257,7 +271,10 @@ Monitor these signals externally:
 #!/usr/bin/env bash
 # backup.sh — run daily via cron
 TIMESTAMP=$(date +%Y%m%d-%H%M)
-cp instance/chessclub.db "backups/chessclub-${TIMESTAMP}.db"
+docker compose exec web python -c "
+import shutil; shutil.copy('/app/instance/chessclub.db', '/tmp/backup.db')
+"
+docker cp chessclub-web-web-1:/tmp/backup.db "backups/chessclub-${TIMESTAMP}.db"
 cp watched_clubs.json "backups/watched_clubs-${TIMESTAMP}.json"
 ```
 
@@ -268,13 +285,14 @@ cp watched_clubs.json "backups/watched_clubs-${TIMESTAMP}.json"
 docker compose down
 
 # 2. Restore the database
-cp backups/chessclub-20260101-000000.db instance/chessclub.db
+docker compose up -d
+docker cp backups/chessclub-20260101-000000.db chessclub-web-web-1:/app/instance/chessclub.db
 
 # 3. Restore the watched clubs list
 cp backups/watched_clubs-20260101-000000.json watched_clubs.json
 
 # 4. Restart
-docker compose up -d
+docker compose restart
 ```
 
 The application auto-creates tables on startup via `db.create_all()`.
@@ -293,3 +311,4 @@ Restoring the database file is sufficient — no migration commands needed.
 | Database locked error | Concurrent sync and route access on SQLite | SQLite handles this gracefully with retries. Persistent locks indicate a stuck sync thread — restart the application. |
 | OAuth callback returns 404 | `OAUTH_REDIRECT_URI` does not match Chess.com app registration | Verify the URI exactly matches in both `.env` and the Chess.com developer console. |
 | Container exits immediately | Missing `.env` or port conflict | Check `docker compose logs web` for the error. |
+| Data lost after container recreate | `DATABASE_URI` not pointing to `/app/instance/` | Set `DATABASE_URI=sqlite:////app/instance/chessclub.db` in your compose override. |

@@ -7,7 +7,8 @@ portalocker>=3.2
 gunicorn>=22.0
 
 # chessclub library — use one of the options below:
-# Option A: install from GitHub (production)
-chessclub @ git+https://github.com/cmellojr/chessclub.git
+# Option A: install from GitHub (production/test) — pin to a commit for reproducibility:
+# chessclub @ git+https://github.com/cmellojr/chessclub.git@<commit-sha>
 # Option B: install locally (development) — comment line above and run:
 #   pip install -e ../chessclub
+chessclub @ git+https://github.com/cmellojr/chessclub.git

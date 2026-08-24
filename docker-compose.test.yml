@@ -1,0 +1,19 @@
+# Test overrides — isolated environment on port 5001.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --build
+services:
+  web:
+    build:
+      target: prod
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_DEBUG=0
+      - DATABASE_URI=sqlite:////app/instance/chessclub.db
+      - SECRET_KEY=test-secret-not-for-production
+      - SYNC_INTERVAL_HOURS=24
+    volumes:
+      - test-db-data:/app/instance
+    restart: "no"
+
+volumes:
+  test-db-data:

@@ -1,9 +1,20 @@
-# Production overrides — use with:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Production overrides — hardened settings.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 services:
   web:
     build:
       target: prod
-    restart: unless-stopped
     environment:
       - FLASK_DEBUG=0
+      - DATABASE_URI=sqlite:////app/instance/chessclub.db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

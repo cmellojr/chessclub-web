@@ -1,0 +1,11 @@
+# Development overrides — hot reload, debug, volume mounts.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+services:
+  web:
+    build:
+      target: dev
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - FLASK_DEBUG=1
