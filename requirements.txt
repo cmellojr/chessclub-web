@@ -1,10 +1,10 @@
 Flask>=3.0
 Flask-SQLAlchemy>=3.1
-python-dotenv>=1.0
+python-dotenv>=1.2.4
 requests>=2.31
 APScheduler>=3.10
-portalocker>=3.2
-gunicorn>=22.0
+portalocker>=4.4
+gunicorn>=26.2
 
 # chessclub library — use one of the options below:
 # Option A: install from GitHub (production/test) — pin to a commit for reproducibility:
